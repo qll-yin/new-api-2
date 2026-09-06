@@ -53,6 +53,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
   personal: {
     enabled: true,
     topup: true,
+    promotion: true,
     personal: true,
   },
   admin: {
