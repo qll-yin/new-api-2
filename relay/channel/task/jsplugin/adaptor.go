@@ -823,6 +823,17 @@ func (a *TaskAdaptor) ConvertToOpenAIVideo(task *model.Task) ([]byte, error) {
 			delete(rendered.Metadata, key)
 		}
 	}
+	// 恢复旧版行为:任务成功后把结果地址(上游直链或站内代理地址)带回给 OpenAI 兼容客户端。
+	// 仅成功任务注入,避免把失败原因文本当作 URL 输出。
+	if task.Status == model.TaskStatusSuccess {
+		if resultURL := strings.TrimSpace(task.GetResultURL()); resultURL != "" {
+			rendered.VideoURL = resultURL
+			if rendered.Metadata == nil {
+				rendered.Metadata = make(map[string]any)
+			}
+			rendered.Metadata["url"] = resultURL
+		}
+	}
 	if len(rendered.Metadata) == 0 {
 		rendered.Metadata = nil
 	}

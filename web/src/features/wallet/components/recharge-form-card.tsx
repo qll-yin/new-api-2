@@ -232,6 +232,7 @@ export function RechargeFormCard({
                         preset.discount ||
                         topupInfo?.discount?.[preset.value] ||
                         1.0
+                      const bonus = topupInfo?.bonus?.[preset.value] || 0
                       const {
                         displayValue,
                         actualPrice,
@@ -259,19 +260,34 @@ export function RechargeFormCard({
                             <div className='text-base font-semibold sm:text-lg'>
                               {formatNumber(displayValue)}
                             </div>
-                            {hasDiscount && (
+                            {bonus > 0 ? (
                               <div className='text-xs font-medium text-green-600'>
-                                {getDiscountLabel(discount)}
+                                +{formatCurrency(bonus)}
                               </div>
+                            ) : (
+                              hasDiscount && (
+                                <div className='text-xs font-medium text-green-600'>
+                                  {getDiscountLabel(discount)}
+                                </div>
+                              )
                             )}
                           </div>
                           <div className='text-muted-foreground mt-1.5 w-full text-xs sm:mt-2'>
-                            Pay {formatCurrency(actualPrice)}
-                            {hasDiscount && savedAmount > 0 && (
-                              <span className='text-green-600'>
-                                {' '}
-                                • Save {formatCurrency(savedAmount)}
-                              </span>
+                            {bonus > 0 ? (
+                              <>
+                                {t('Credited')}{' '}
+                                {formatNumber(preset.value + bonus)}
+                              </>
+                            ) : (
+                              <>
+                                Pay {formatCurrency(actualPrice)}
+                                {hasDiscount && savedAmount > 0 && (
+                                  <span className='text-green-600'>
+                                    {' '}
+                                    • Save {formatCurrency(savedAmount)}
+                                  </span>
+                                )}
+                              </>
                             )}
                           </div>
                         </Button>
@@ -298,18 +314,36 @@ export function RechargeFormCard({
                     placeholder={`Minimum ${minTopup}`}
                     className='h-9 text-base sm:h-10 sm:text-lg'
                   />
-                  <div className='bg-muted/30 flex min-h-9 items-center justify-between gap-2 rounded-md border px-3 lg:min-w-52'>
-                    <span className='text-muted-foreground truncate text-xs'>
-                      {t('Amount to pay:')}
+                <div className='bg-muted/30 flex min-h-9 items-center justify-between gap-2 rounded-md border px-3 lg:min-w-52'>
+                  <span className='text-muted-foreground truncate text-xs'>
+                    {t('Amount to pay:')}
+                  </span>
+                  {calculating ? (
+                    <Skeleton className='h-5 w-16' />
+                  ) : (
+                    <span className='text-sm font-semibold'>
+                      {formatCurrency(paymentAmount)}
                     </span>
-                    {calculating ? (
-                      <Skeleton className='h-5 w-16' />
-                    ) : (
-                      <span className='text-sm font-semibold'>
-                        {formatCurrency(paymentAmount)}
+                  )}
+                </div>
+                {(topupInfo?.bonus?.[topupAmount] || 0) > 0 && (
+                  <div className='col-span-full flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs'>
+                    <span className='text-muted-foreground'>
+                      {t('Bonus amount:')}
+                      <span className='ml-1 font-medium text-green-600'>
+                        +{formatCurrency(topupInfo?.bonus?.[topupAmount] || 0)}
                       </span>
-                    )}
+                    </span>
+                    <span className='text-muted-foreground'>
+                      {t('Credited amount:')}
+                      <span className='ml-1 font-semibold text-foreground'>
+                        {formatCurrency(
+                          topupAmount + (topupInfo?.bonus?.[topupAmount] || 0)
+                        )}
+                      </span>
+                    </span>
                   </div>
+                )}
                 </div>
               </div>
 

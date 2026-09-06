@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Share2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Link } from '@tanstack/react-router'
 
 import { CopyButton } from '@/components/copy-button'
 import { Button } from '@/components/ui/button'
@@ -71,13 +72,19 @@ export function AffiliateRewardsCard({
           </IconBadge>
           <div className='min-w-0'>
             <h3 className='truncate text-sm font-semibold'>
-              {t('Referral Program')}
+              {t('Promotion Commission')}
             </h3>
             <p className='text-muted-foreground line-clamp-1 text-xs'>
               {t(
                 'Earn rewards when users join through your referral link. Transfer accumulated rewards to your balance anytime.'
               )}
             </p>
+            <Link
+              to='/promotion'
+              className='text-primary text-xs hover:underline'
+            >
+              {t('View campaign details')}
+            </Link>
           </div>
         </div>
 

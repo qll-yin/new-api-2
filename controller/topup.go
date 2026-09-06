@@ -119,6 +119,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
+		"bonus":                   operation_setting.GetPaymentSetting().AmountBonus,
 		"topup_link":              common.TopUpLink,
 	}
 	common.ApiSuccess(c, data)
@@ -329,10 +330,17 @@ func RequestEpay(c *gin.Context) {
 		dQuotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
 		amount = dAmount.Div(dQuotaPerUnit).IntPart()
 	}
+	bonusAmount := operation_setting.GetAmountBonus(amount)
+	if bonusAmount > 0 {
+		if rejectInvalidCreditedQuota(c, id, decimal.NewFromInt(amount).Add(decimal.NewFromFloat(bonusAmount)).Mul(decimal.NewFromFloat(common.QuotaPerUnit))) {
+			return
+		}
+	}
 	topUp := &model.TopUp{
 		UserId:          id,
 		Amount:          amount,
 		Money:           payMoney,
+		BonusAmount:     bonusAmount,
 		TradeNo:         tradeNo,
 		PaymentMethod:   req.PaymentMethod,
 		PaymentProvider: model.PaymentProviderEpay,

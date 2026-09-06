@@ -275,6 +275,10 @@ export function Wallet(props: WalletProps) {
     return topupInfo?.discount?.[topupAmount] || DEFAULT_DISCOUNT_RATE
   }, [topupInfo, topupAmount])
 
+  const getBonusAmount = useCallback(() => {
+    return topupInfo?.bonus?.[topupAmount] || 0
+  }, [topupInfo, topupAmount])
+
   const handleSubscriptionAvailabilityChange = useCallback(
     (available: boolean) => {
       setShowSubscriptionPanel(available)
@@ -363,6 +367,7 @@ export function Wallet(props: WalletProps) {
         processing={processing || waffoProcessing || pancakeProcessing}
         discountRate={getDiscountRate()}
         usdExchangeRate={effectiveUsdExchangeRate}
+        bonusAmount={getBonusAmount()}
       />
 
       <TransferDialog

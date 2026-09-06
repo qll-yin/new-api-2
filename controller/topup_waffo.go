@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"github.com/thanhpk/randstr"
 	waffo "github.com/waffo-com/waffo-go"
 	"github.com/waffo-com/waffo-go/config"
@@ -222,12 +223,19 @@ func RequestWaffoPay(c *gin.Context) {
 			amount = 1
 		}
 	}
+	bonusAmount := operation_setting.GetAmountBonus(amount)
+	if bonusAmount > 0 {
+		if rejectInvalidCreditedQuota(c, id, decimal.NewFromInt(amount).Add(decimal.NewFromFloat(bonusAmount)).Mul(decimal.NewFromFloat(common.QuotaPerUnit))) {
+			return
+		}
+	}
 
 	// 创建本地订单
 	topUp := &model.TopUp{
 		UserId:          id,
 		Amount:          amount,
 		Money:           payMoney,
+		BonusAmount:     bonusAmount,
 		TradeNo:         merchantOrderId,
 		PaymentMethod:   model.PaymentMethodWaffo,
 		PaymentProvider: model.PaymentProviderWaffo,

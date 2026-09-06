@@ -47,6 +47,7 @@ interface PaymentConfirmDialogProps {
   processing: boolean
   discountRate?: number
   usdExchangeRate?: number
+  bonusAmount?: number
 }
 
 export function PaymentConfirmDialog({
@@ -60,9 +61,11 @@ export function PaymentConfirmDialog({
   processing,
   discountRate = DEFAULT_DISCOUNT_RATE,
   usdExchangeRate = 1,
+  bonusAmount = 0,
 }: PaymentConfirmDialogProps) {
   const { t } = useTranslation()
   const hasDiscount = discountRate > 0 && discountRate < 1 && paymentAmount > 0
+  const hasBonus = bonusAmount > 0
   const originalAmount = hasDiscount ? paymentAmount / discountRate : 0
   const discountAmount = hasDiscount ? originalAmount - paymentAmount : 0
 
@@ -111,6 +114,27 @@ export function PaymentConfirmDialog({
               </div>
             )}
           </div>
+
+          {hasBonus && !calculating && (
+            <div className='bg-muted/50 rounded-lg p-3'>
+              <div className='flex items-center justify-between text-sm'>
+                <span className='text-muted-foreground'>
+                  {t('Bonus amount')}
+                </span>
+                <span className='font-semibold text-green-600'>
+                  +{formatCurrency(bonusAmount)}
+                </span>
+              </div>
+              <div className='mt-2 flex items-center justify-between text-sm'>
+                <span className='text-muted-foreground'>
+                  {t('Credited amount')}
+                </span>
+                <span className='font-semibold'>
+                  {formatCurrency(topupAmount + bonusAmount)}
+                </span>
+              </div>
+            </div>
+          )}
 
           {hasDiscount && !calculating && (
             <div className='bg-muted/50 rounded-lg p-3'>

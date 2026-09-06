@@ -26,6 +26,7 @@ type OpenAIVideo struct {
 	Seconds            string            `json:"seconds,omitempty"`
 	Size               string            `json:"size,omitempty"`
 	RemixedFromVideoID string            `json:"remixed_from_video_id,omitempty"`
+	VideoURL           string            `json:"video_url,omitempty"` // 兼容旧版:任务成功后的视频地址(上游直链或站内代理地址)
 	Error              *OpenAIVideoError `json:"error,omitempty"`
 	Metadata           map[string]any    `json:"metadata,omitempty"`
 }

@@ -597,6 +597,38 @@ render: function() {
 	assert.NotContains(t, string(rendered), "upstream-task-id")
 }
 
+func TestTaskAdaptorRestoresLegacyVideoURLForSuccessfulTasks(t *testing.T) {
+	source := strings.Replace(mockPlugin, `render: function(ctx, task) { return {id: task.task_id, status: "completed"}; }`, `render: function() { return {id:"provider", object:"provider", model:"provider-model", status:"completed", progress:100, created_at:99}; }`, 1)
+	plugin, err := pluginruntime.NewRegistry().Register(source, pluginruntime.Options{})
+	require.NoError(t, err)
+	adaptor := New(plugin)
+
+	task := &model.Task{
+		TaskID:      "task_public",
+		Status:      model.TaskStatusSuccess,
+		PrivateData: model.TaskPrivateData{ResultURL: "https://upstream.example/video.mp4"},
+		Properties:  model.Properties{OriginModelName: "origin-model"},
+	}
+
+	rendered, err := adaptor.ConvertToOpenAIVideo(task)
+
+	require.NoError(t, err)
+	var video dto.OpenAIVideo
+	require.NoError(t, common.Unmarshal(rendered, &video))
+	assert.Equal(t, "https://upstream.example/video.mp4", video.VideoURL)
+	assert.Equal(t, map[string]any{"url": "https://upstream.example/video.mp4"}, video.Metadata)
+
+	// 非成功任务(含旧数据把 URL 存在 FailReason 的情况)不得注入
+	task.Status = model.TaskStatusInProgress
+	task.FailReason = "https://legacy.example/video.mp4"
+	rendered, err = adaptor.ConvertToOpenAIVideo(task)
+	require.NoError(t, err)
+	var empty dto.OpenAIVideo
+	require.NoError(t, common.Unmarshal(rendered, &empty))
+	assert.Empty(t, empty.VideoURL)
+	assert.Nil(t, empty.Metadata)
+}
+
 func TestTaskAdaptorPreservesOpenAIVideoFailureSlotsAndOwnsLifecycle(t *testing.T) {
 	source := strings.Replace(mockPlugin, `render: function(ctx, task) { return {id: task.task_id, status: "completed"}; }`, `render: function() { return {id:"provider", object:"provider", model:"provider-model", status:"completed", progress:100, created_at:99, completed_at:20, error:{code:"provider_error",message:"provider rejected request"}}; }`, 1)
 	plugin, err := pluginruntime.NewRegistry().Register(source, pluginruntime.Options{})

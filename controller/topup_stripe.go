@@ -100,8 +100,13 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 		return
 	}
 	chargedMoney := GetChargedAmount(float64(req.Amount), *user)
+	bonusAmount := operation_setting.GetAmountBonus(req.Amount)
+	creditedBase := decimal.NewFromFloat(chargedMoney)
+	if bonusAmount > 0 {
+		creditedBase = creditedBase.Add(decimal.NewFromFloat(bonusAmount))
+	}
 	if rejectInvalidCreditedQuota(c, id,
-		decimal.NewFromFloat(chargedMoney).Mul(decimal.NewFromFloat(common.QuotaPerUnit)),
+		creditedBase.Mul(decimal.NewFromFloat(common.QuotaPerUnit)),
 	) {
 		return
 	}
@@ -120,6 +125,7 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 		UserId:          id,
 		Amount:          req.Amount,
 		Money:           chargedMoney,
+		BonusAmount:     bonusAmount,
 		TradeNo:         referenceId,
 		PaymentMethod:   model.PaymentMethodStripe,
 		PaymentProvider: model.PaymentProviderStripe,
