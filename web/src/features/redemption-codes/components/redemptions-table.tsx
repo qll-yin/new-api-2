@@ -82,18 +82,43 @@ export function RedemptionsTable() {
   const statusFilterValue = statusFilter[0] ?? ''
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const redeemedFrom = search.redeemedFrom ?? ''
-  const redeemedTo = search.redeemedTo ?? ''
-  const hasRedeemedTimeFilter = redeemedFrom !== '' || redeemedTo !== ''
+  // 时间范围默认当天 00:00:00 ~ 23:59:59;
+  // URL 无参数表示默认值,空串表示用户已清除(查看全部)
+  const hasTimeParams =
+    search.redeemedFrom !== undefined || search.redeemedTo !== undefined
+  const now = new Date()
+  const dayStart = new Date(now)
+  dayStart.setHours(0, 0, 0, 0)
+  const dayEnd = new Date(now)
+  dayEnd.setHours(23, 59, 59, 0)
+  const redeemedFrom = hasTimeParams
+    ? (search.redeemedFrom ?? '')
+    : String(Math.floor(dayStart.getTime() / 1000))
+  const redeemedTo = hasTimeParams
+    ? (search.redeemedTo ?? '')
+    : String(Math.floor(dayEnd.getTime() / 1000))
+  const hasRedeemedTimeFilter = hasTimeParams
 
-  // 秒级时间戳存入 URL;结束时间若为整天(00:00:00)则延伸到当天 23:59:59
+  // 选择器确认:两个时间都清空时写入空串(查看全部);工具栏重置:移除
+  // URL 参数回到默认当天
   const setRedeemedTimeRange = (from?: Date, to?: Date) => {
     navigate({
       search: (prev) => ({
         ...(prev as Record<string, unknown>),
         page: 1,
-        redeemedFrom: from ? String(Math.floor(from.getTime() / 1000)) : undefined,
-        redeemedTo: to ? String(Math.floor(to.getTime() / 1000)) : undefined,
+        redeemedFrom: from ? String(Math.floor(from.getTime() / 1000)) : '',
+        redeemedTo: to ? String(Math.floor(to.getTime() / 1000)) : '',
+      }),
+      replace: true,
+    })
+  }
+  const resetRedeemedTimeRange = () => {
+    navigate({
+      search: (prev) => ({
+        ...(prev as Record<string, unknown>),
+        page: 1,
+        redeemedFrom: undefined,
+        redeemedTo: undefined,
       }),
       replace: true,
     })
@@ -206,9 +231,7 @@ export function RedemptionsTable() {
         searchPlaceholder: t('Filter by name or ID...'),
         searchDebounceMs: 500,
         hasAdditionalFilters: hasRedeemedTimeFilter,
-        onReset: () => {
-          setRedeemedTimeRange(undefined, undefined)
-        },
+        onReset: resetRedeemedTimeRange,
         additionalSearch: (
           <CompactDateTimeRangePicker
             start={redeemedFromDate}
@@ -219,7 +242,6 @@ export function RedemptionsTable() {
                 end ? normalizeRedeemedEnd(end) : undefined
               )
             }}
-            emptyLabel={t('Redeemed time range')}
             className='w-full sm:w-auto'
           />
         ),

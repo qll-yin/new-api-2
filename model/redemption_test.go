@@ -88,8 +88,8 @@ func TestSearchRedemptionsFiltersAndPaginates(t *testing.T) {
 			wantIds:   []int{4, 3},
 		},
 		{
-			// 已兑换时间区间只命中已兑换(Used)且 redeemed_time > 0 的记录
-			name:         "redeemed time range filters redeemed rows",
+			// 时间范围仅约束 redeemed_time(排除未兑换行)，与状态独立
+			name:         "time range filters redeemed rows",
 			redeemedFrom: strconv.FormatInt(now-200, 10),
 			redeemedTo:   strconv.FormatInt(now-50, 10),
 			num:          10,
@@ -97,7 +97,8 @@ func TestSearchRedemptionsFiltersAndPaginates(t *testing.T) {
 			wantIds:      []int{5},
 		},
 		{
-			name:         "redeemed time range outside window matches nothing",
+			// 未兑换行 redeemed_time 为 0，任何区间都不命中
+			name:         "time range outside window matches nothing",
 			redeemedFrom: strconv.FormatInt(now-10, 10),
 			redeemedTo:   strconv.FormatInt(now+10, 10),
 			num:          10,

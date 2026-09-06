@@ -105,8 +105,10 @@ func SearchRedemptions(keyword string, status string, startTimestamp string, end
 		}
 	}
 
+	// 时间范围仅约束 redeemed_time，与状态筛选独立叠加：
+	// redeemed_time > 0 只是排除未兑换行，不限定状态。
 	if startTimestamp != "" || endTimestamp != "" {
-		query = query.Where("status = ? AND redeemed_time > 0", common.RedemptionCodeStatusUsed)
+		query = query.Where("redeemed_time > 0")
 		if startTimestamp != "" {
 			if start, parseErr := strconv.ParseInt(startTimestamp, 10, 64); parseErr == nil && start > 0 {
 				query = query.Where("redeemed_time >= ?", start)
