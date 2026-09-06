@@ -39,6 +39,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { type SidebarData } from '@/components/layout/types'
+import { useStatus } from '@/hooks/use-status'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -49,6 +50,9 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  // 推广分成活动关闭时隐藏推广菜单（跟随 /api/status 的开关）
+  const { status } = useStatus()
+  const promotionEnabled = status?.promotion_commission_enabled === true
 
   return {
     navGroups: [
@@ -110,11 +114,15 @@ export function useSidebarData(): SidebarData {
             url: '/wallet',
             icon: Wallet,
           },
-          {
-            title: t('Promotion Campaign'),
-            url: '/promotion',
-            icon: Megaphone,
-          },
+          ...(promotionEnabled
+            ? [
+                {
+                  title: t('Promotion Campaign'),
+                  url: '/promotion',
+                  icon: Megaphone,
+                },
+              ]
+            : []),
           {
             title: t('Profile'),
             url: '/profile',

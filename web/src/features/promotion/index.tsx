@@ -161,20 +161,6 @@ export function Promotion() {
         <ConfettiCannons autoFireOnMount={false} handleRef={confettiRef} />
 
         <div className='relative mx-auto flex w-full max-w-7xl flex-col gap-4'>
-          {/* 漂浮的卡通脸装饰 */}
-          {!reduceMotion && info?.enabled && (
-            <>
-              <FloatingMascot
-                delay={0.4}
-                className='pointer-events-none absolute top-2 right-2 z-10 hidden h-20 w-20 lg:block'
-              />
-              <FloatingMascot
-                delay={1.1}
-                className='pointer-events-none absolute bottom-40 left-1 z-10 hidden h-14 w-14 xl:block'
-              />
-            </>
-          )}
-
           {/* 专属推广官小卡(左下角，仅桌面端) */}
           {info?.enabled && (
             <motion.div
@@ -220,12 +206,43 @@ export function Promotion() {
             </motion.div>
           )}
 
-          {/* 专属推广链接卡 */}
+          {/* 活动关闭提示横幅 */}
+          {info && !info.enabled && (
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              <Card
+                data-card-hover='false'
+                className='border-amber-500/40 bg-amber-500/5 py-0'
+              >
+                <CardContent className='flex items-center gap-2.5 p-3.5'>
+                  <IconBadge tone='warning'>
+                    <Megaphone />
+                  </IconBadge>
+                  <div className='min-w-0'>
+                    <p className='text-sm font-semibold'>
+                      {t('Campaign paused')}
+                    </p>
+                    <p className='text-muted-foreground text-xs'>
+                      {t(
+                        'The promotion campaign is currently disabled. New commissions will not be granted, but your existing records and stats are kept.'
+                      )}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* 专属推广链接卡 + 卡通脸方形展示卡 */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
           >
+            <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]'>
             <Card
               data-card-hover='false'
               className='relative overflow-hidden border-primary/20 py-0'
@@ -286,22 +303,30 @@ export function Promotion() {
                       successTooltip={t('Copied')}
                       aria-label={t('Copy link')}
                     >
-                      <span className='ml-1 inline-flex items-center gap-1'>
-                        <Copy className='size-3.5' />
-                        {t('Copy')}
-                      </span>
+                      {t('Copy')}
                     </CopyButton>
                   </div>
-                  {isLoading || !info ? null : !info.enabled ? (
-                    <p className='text-muted-foreground mt-2 text-xs'>
-                      {t(
-                        'The promotion campaign is currently disabled. Existing commission records are kept.'
-                      )}
-                    </p>
-                  ) : null}
                 </div>
               </CardContent>
             </Card>
+
+            {/* 卡通脸方形展示卡：仅装饰，不遮挡任何内容 */}
+            {info?.enabled && !reduceMotion && (
+              <div className='hidden lg:flex lg:w-36 lg:shrink-0'>
+                <Card
+                  data-card-hover='false'
+                  className='relative w-full overflow-hidden border-primary/20 bg-gradient-to-b from-primary/10 to-transparent py-0'
+                >
+                  <CardContent className='flex h-full flex-col items-center justify-center gap-2 p-3 text-center'>
+                    <FloatingMascot className='h-20 w-20' />
+                    <p className='text-muted-foreground text-[11px] leading-4'>
+                      {t('Invite friends, earn from every top-up')}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            </div>
           </motion.div>
 
           {/* 推广分成统计卡 */}
