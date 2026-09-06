@@ -82,46 +82,27 @@ export function RedemptionsTable() {
   const statusFilterValue = statusFilter[0] ?? ''
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  // 时间范围默认当天 00:00:00 ~ 23:59:59;
-  // URL 无参数表示默认值,空串表示用户已清除(查看全部)
-  const hasTimeParams =
-    search.redeemedFrom !== undefined || search.redeemedTo !== undefined
-  const now = new Date()
-  const dayStart = new Date(now)
-  dayStart.setHours(0, 0, 0, 0)
-  const dayEnd = new Date(now)
-  dayEnd.setHours(23, 59, 59, 0)
-  const redeemedFrom = hasTimeParams
-    ? (search.redeemedFrom ?? '')
-    : String(Math.floor(dayStart.getTime() / 1000))
-  const redeemedTo = hasTimeParams
-    ? (search.redeemedTo ?? '')
-    : String(Math.floor(dayEnd.getTime() / 1000))
-  const hasRedeemedTimeFilter = hasTimeParams
+  // 时间范围仅在选择时生效,默认不筛选。注意兑换时间筛选天然只命中
+  // 已兑换的行(未兑换的 redeemed_time=0 不在任何区间内),因此不能
+  // 默认套用当天区间,否则未使用的码会被整体隐藏。
+  const redeemedFrom = search.redeemedFrom ?? ''
+  const redeemedTo = search.redeemedTo ?? ''
+  const hasRedeemedTimeFilter = redeemedFrom !== '' || redeemedTo !== ''
 
-  // 选择器确认:两个时间都清空时写入空串(查看全部);工具栏重置:移除
-  // URL 参数回到默认当天
+  // 选择器确认:清空两个时间即移除筛选(查看全部)
   const setRedeemedTimeRange = (from?: Date, to?: Date) => {
     navigate({
       search: (prev) => ({
         ...(prev as Record<string, unknown>),
         page: 1,
-        redeemedFrom: from ? String(Math.floor(from.getTime() / 1000)) : '',
-        redeemedTo: to ? String(Math.floor(to.getTime() / 1000)) : '',
+        redeemedFrom: from ? String(Math.floor(from.getTime() / 1000)) : undefined,
+        redeemedTo: to ? String(Math.floor(to.getTime() / 1000)) : undefined,
       }),
       replace: true,
     })
   }
   const resetRedeemedTimeRange = () => {
-    navigate({
-      search: (prev) => ({
-        ...(prev as Record<string, unknown>),
-        page: 1,
-        redeemedFrom: undefined,
-        redeemedTo: undefined,
-      }),
-      replace: true,
-    })
+    setRedeemedTimeRange(undefined, undefined)
   }
   const normalizeRedeemedEnd = (date: Date) => {
     if (date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0) {
