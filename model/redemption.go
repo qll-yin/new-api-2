@@ -60,7 +60,9 @@ func GetAllRedemptions(startIdx int, num int) (redemptions []*Redemption, total 
 	return redemptions, total, nil
 }
 
-func SearchRedemptions(keyword string, status string, startIdx int, num int) (redemptions []*Redemption, total int64, err error) {
+// SearchRedemptions 按名称/ID 关键字、状态和已兑换时间区间筛选兑换码。
+// startTimestamp/endTimestamp 为秒级 Unix 时间戳字符串，任一为空表示不限制该端。
+func SearchRedemptions(keyword string, status string, startTimestamp string, endTimestamp string, startIdx int, num int) (redemptions []*Redemption, total int64, err error) {
 	tx := DB.Begin()
 	if tx.Error != nil {
 		return nil, 0, tx.Error
@@ -100,6 +102,20 @@ func SearchRedemptions(keyword string, status string, startIdx int, num int) (re
 			query = query.Where("status = ?", common.RedemptionCodeStatusDisabled)
 		case strconv.Itoa(common.RedemptionCodeStatusUsed):
 			query = query.Where("status = ?", common.RedemptionCodeStatusUsed)
+		}
+	}
+
+	if startTimestamp != "" || endTimestamp != "" {
+		query = query.Where("status = ? AND redeemed_time > 0", common.RedemptionCodeStatusUsed)
+		if startTimestamp != "" {
+			if start, parseErr := strconv.ParseInt(startTimestamp, 10, 64); parseErr == nil && start > 0 {
+				query = query.Where("redeemed_time >= ?", start)
+			}
+		}
+		if endTimestamp != "" {
+			if end, parseErr := strconv.ParseInt(endTimestamp, 10, 64); parseErr == nil && end > 0 {
+				query = query.Where("redeemed_time <= ?", end)
+			}
 		}
 	}
 

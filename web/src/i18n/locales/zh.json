@@ -3904,6 +3904,8 @@
     "Redeemed": "已使用",
     "Redeemed at": "使用时间",
     "Redeemed By": "兑换人",
+    "Redeemed from": "兑换起始时间",
+    "Redeemed to": "兑换截止时间",
     "Redeemed:": "已兑换：",
     "redemption code": "兑换码",
     "Redemption Code": "兑换码",

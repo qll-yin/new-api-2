@@ -29,6 +29,8 @@ const redemptionsSearchSchema = z.object({
   pageSize: z.number().optional().catch(10),
   filter: z.string().optional().catch(''),
   status: z.array(z.enum(REDEMPTION_FILTER_VALUES)).optional().catch([]),
+  redeemedFrom: z.string().optional().catch(''),
+  redeemedTo: z.string().optional().catch(''),
 })
 
 export const Route = createFileRoute('/_authenticated/redemption-codes/')({

@@ -28,6 +28,7 @@ import {
   DataTablePage,
   useDataTable,
 } from '@/components/data-table'
+import { DateTimePicker } from '@/components/datetime-picker'
 import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 
@@ -79,6 +80,34 @@ export function RedemptionsTable() {
       | string[]
       | undefined) ?? []
   const statusFilterValue = statusFilter[0] ?? ''
+  const search = route.useSearch()
+  const navigate = route.useNavigate()
+  const redeemedFrom = search.redeemedFrom ?? ''
+  const redeemedTo = search.redeemedTo ?? ''
+  const hasRedeemedTimeFilter = redeemedFrom !== '' || redeemedTo !== ''
+
+  // 秒级时间戳存入 URL;结束时间若为整天(00:00:00)则延伸到当天 23:59:59
+  const setRedeemedTimeRange = (from?: Date, to?: Date) => {
+    navigate({
+      search: (prev) => ({
+        ...(prev as Record<string, unknown>),
+        page: 1,
+        redeemedFrom: from ? String(Math.floor(from.getTime() / 1000)) : undefined,
+        redeemedTo: to ? String(Math.floor(to.getTime() / 1000)) : undefined,
+      }),
+      replace: true,
+    })
+  }
+  const normalizeRedeemedEnd = (date: Date) => {
+    if (date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0) {
+      const end = new Date(date)
+      end.setHours(23, 59, 59, 0)
+      return end
+    }
+    return date
+  }
+  const redeemedFromDate = redeemedFrom ? new Date(Number(redeemedFrom) * 1000) : undefined
+  const redeemedToDate = redeemedTo ? new Date(Number(redeemedTo) * 1000) : undefined
 
   // Fetch data with React Query
   const { data, isLoading, isFetching } = useQuery({
@@ -88,30 +117,35 @@ export function RedemptionsTable() {
       pagination.pageSize,
       globalFilter,
       statusFilterValue,
+      redeemedFrom,
+      redeemedTo,
       refreshTrigger,
     ],
     queryFn: async () => {
       const hasFilter = globalFilter?.trim()
       const hasStatusFilter = statusFilterValue !== ''
+      const hasTimeFilter = redeemedFrom !== '' || redeemedTo !== ''
+      const isSearching = hasFilter || hasStatusFilter || hasTimeFilter
       const params = {
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
       }
 
-      const result =
-        hasFilter || hasStatusFilter
-          ? await searchRedemptions({
-              ...params,
-              keyword: globalFilter,
-              status: statusFilterValue,
-            })
-          : await getRedemptions(params)
+      const result = isSearching
+        ? await searchRedemptions({
+            ...params,
+            keyword: globalFilter,
+            status: statusFilterValue,
+            start_timestamp: redeemedFrom,
+            end_timestamp: redeemedTo,
+          })
+        : await getRedemptions(params)
 
       if (!result.success) {
         toast.error(
           result.message ||
             t(
-              hasFilter || hasStatusFilter
+              isSearching
                 ? ERROR_MESSAGES.SEARCH_FAILED
                 : ERROR_MESSAGES.LOAD_FAILED
             )
@@ -172,6 +206,41 @@ export function RedemptionsTable() {
       toolbarProps={{
         searchPlaceholder: t('Filter by name or ID...'),
         searchDebounceMs: 500,
+        hasAdditionalFilters: hasRedeemedTimeFilter,
+        onReset: () => {
+          setRedeemedTimeRange(undefined, undefined)
+        },
+        additionalSearch: (
+          <div className='flex flex-wrap items-center gap-2'>
+            <DateTimePicker
+              value={redeemedFromDate}
+              onChange={(date) =>
+                setRedeemedTimeRange(date, redeemedToDate)
+              }
+              placeholder={t('Redeemed from')}
+              className='w-full sm:w-[190px]'
+            />
+            <DateTimePicker
+              value={redeemedToDate}
+              onChange={(date) =>
+                setRedeemedTimeRange(redeemedFromDate, date ? normalizeRedeemedEnd(date) : undefined)
+              }
+              placeholder={t('Redeemed to')}
+              className='w-full sm:w-[190px]'
+            />
+            {hasRedeemedTimeFilter && (
+              <button
+                type='button'
+                onClick={() => {
+                  setRedeemedTimeRange(undefined, undefined)
+                }}
+                className='text-muted-foreground hover:text-foreground text-xs whitespace-nowrap'
+              >
+                {t('Clear')}
+              </button>
+            )}
+          </div>
+        ),
         filters: [
           {
             columnId: 'status',

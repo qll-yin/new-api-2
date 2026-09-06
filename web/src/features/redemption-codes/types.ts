@@ -66,6 +66,8 @@ export interface GetRedemptionsResponse {
 export interface SearchRedemptionsParams {
   keyword?: string
   status?: string
+  start_timestamp?: string
+  end_timestamp?: string
   p?: number
   page_size?: number
 }

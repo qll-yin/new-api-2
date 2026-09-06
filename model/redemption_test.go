@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strconv"
 	"sync"
 	"testing"
 
@@ -23,18 +24,20 @@ func TestSearchRedemptionsFiltersAndPaginates(t *testing.T) {
 		{Id: 2, Name: "alpha-future", Key: "00000000000000000000000000000002", Status: common.RedemptionCodeStatusEnabled, ExpiredTime: now + 3600},
 		{Id: 3, Name: "alpha-expired", Key: "00000000000000000000000000000003", Status: common.RedemptionCodeStatusEnabled, ExpiredTime: now - 10},
 		{Id: 4, Name: "beta-disabled", Key: "00000000000000000000000000000004", Status: common.RedemptionCodeStatusDisabled, ExpiredTime: 0},
-		{Id: 5, Name: "beta-used", Key: "00000000000000000000000000000005", Status: common.RedemptionCodeStatusUsed, ExpiredTime: 0},
+		{Id: 5, Name: "beta-used", Key: "00000000000000000000000000000005", Status: common.RedemptionCodeStatusUsed, ExpiredTime: 0, RedeemedTime: now - 100},
 	}
 	require.NoError(t, DB.Create(&redemptions).Error)
 
 	tests := []struct {
-		name      string
-		keyword   string
-		status    string
-		startIdx  int
-		num       int
-		wantTotal int64
-		wantIds   []int
+		name         string
+		keyword      string
+		status       string
+		startIdx     int
+		num          int
+		wantTotal    int64
+		wantIds      []int
+		redeemedFrom string
+		redeemedTo   string
 	}{
 		{
 			name:      "no filters returns all rows",
@@ -84,11 +87,28 @@ func TestSearchRedemptionsFiltersAndPaginates(t *testing.T) {
 			wantTotal: 5,
 			wantIds:   []int{4, 3},
 		},
+		{
+			// 已兑换时间区间只命中已兑换(Used)且 redeemed_time > 0 的记录
+			name:         "redeemed time range filters redeemed rows",
+			redeemedFrom: strconv.FormatInt(now-200, 10),
+			redeemedTo:   strconv.FormatInt(now-50, 10),
+			num:          10,
+			wantTotal:    1,
+			wantIds:      []int{5},
+		},
+		{
+			name:         "redeemed time range outside window matches nothing",
+			redeemedFrom: strconv.FormatInt(now-10, 10),
+			redeemedTo:   strconv.FormatInt(now+10, 10),
+			num:          10,
+			wantTotal:    0,
+			wantIds:      []int{},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rows, total, err := SearchRedemptions(tt.keyword, tt.status, tt.startIdx, tt.num)
+			rows, total, err := SearchRedemptions(tt.keyword, tt.status, tt.redeemedFrom, tt.redeemedTo, tt.startIdx, tt.num)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantTotal, total)
 			gotIds := make([]int, 0, len(rows))
