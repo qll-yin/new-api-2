@@ -28,7 +28,7 @@ import {
   DataTablePage,
   useDataTable,
 } from '@/components/data-table'
-import { DateTimePicker } from '@/components/datetime-picker'
+import { CompactDateTimeRangePicker } from '@/components/compact-date-time-range-picker'
 import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 
@@ -108,7 +108,6 @@ export function RedemptionsTable() {
   }
   const redeemedFromDate = redeemedFrom ? new Date(Number(redeemedFrom) * 1000) : undefined
   const redeemedToDate = redeemedTo ? new Date(Number(redeemedTo) * 1000) : undefined
-
   // Fetch data with React Query
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
@@ -211,35 +210,18 @@ export function RedemptionsTable() {
           setRedeemedTimeRange(undefined, undefined)
         },
         additionalSearch: (
-          <div className='flex flex-wrap items-center gap-2'>
-            <DateTimePicker
-              value={redeemedFromDate}
-              onChange={(date) =>
-                setRedeemedTimeRange(date, redeemedToDate)
-              }
-              placeholder={t('Redeemed from')}
-              className='w-full sm:w-[190px]'
-            />
-            <DateTimePicker
-              value={redeemedToDate}
-              onChange={(date) =>
-                setRedeemedTimeRange(redeemedFromDate, date ? normalizeRedeemedEnd(date) : undefined)
-              }
-              placeholder={t('Redeemed to')}
-              className='w-full sm:w-[190px]'
-            />
-            {hasRedeemedTimeFilter && (
-              <button
-                type='button'
-                onClick={() => {
-                  setRedeemedTimeRange(undefined, undefined)
-                }}
-                className='text-muted-foreground hover:text-foreground text-xs whitespace-nowrap'
-              >
-                {t('Clear')}
-              </button>
-            )}
-          </div>
+          <CompactDateTimeRangePicker
+            start={redeemedFromDate}
+            end={redeemedToDate}
+            onChange={({ start, end }) => {
+              setRedeemedTimeRange(
+                start,
+                end ? normalizeRedeemedEnd(end) : undefined
+              )
+            }}
+            emptyLabel={t('Redeemed time range')}
+            className='w-full sm:w-auto'
+          />
         ),
         filters: [
           {
