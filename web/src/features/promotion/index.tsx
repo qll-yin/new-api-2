@@ -102,9 +102,17 @@ export function Promotion() {
       search.start_timestamp ?? '',
       search.end_timestamp ?? '',
     ],
-    queryFn: () => getPromotionInfo(page, PAGE_SIZE, search),
+    queryFn: async () => {
+      // getPromotionInfo 返回完整响应体，这里拆包出 data 供页面直接使用
+      const res = await getPromotionInfo(page, PAGE_SIZE, search)
+      if (!res.success || !res.data) {
+        throw new Error(res.message || t('Failed to load'))
+      }
+      return res.data
+    },
     placeholderData: (previous) => previous,
   })
+  const items = info?.items ?? []
 
   useEffect(() => {
     // 入场礼炮：仅在活动开启且首次进入时放一发
@@ -447,7 +455,7 @@ export function Promotion() {
                       <Skeleton key={i} className='h-10 w-full' />
                     ))}
                   </div>
-                ) : !info || info.items.length === 0 ? (
+                ) : items.length === 0 ? (
                   <p className='text-muted-foreground py-8 text-center text-sm'>
                     {t('No commission records yet')}
                   </p>
@@ -463,7 +471,7 @@ export function Promotion() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {info.items.map((item) => (
+                        {items.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className='text-xs'>
                               {item.invitee_name

@@ -56,6 +56,9 @@ func GetPromotionInfo(c *gin.Context) {
 		return
 	}
 	pageInfo.SetTotal(int(total))
+	if commissions == nil {
+		commissions = []*model.PromotionCommission{}
+	}
 	pageInfo.SetItems(commissions)
 
 	c.JSON(http.StatusOK, gin.H{
