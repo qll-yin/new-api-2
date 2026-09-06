@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -21,6 +22,7 @@ type PromotionCommission struct {
 	RechargeQuota   int     `json:"recharge_quota"`   // 下级本次到账额度（quota）
 	CommissionQuota int     `json:"commission_quota"` // 上级获得的佣金（quota）
 	CreateTime      int64   `json:"create_time"`
+	InviteeName     string  `json:"invitee_name" gorm:"-"` // 下级用户名（查询后批量填充，不入库）
 }
 
 // grantPromotionCommission 在充值事务内为上级发放推广分成佣金。
@@ -112,17 +114,81 @@ func recordPromotionCommissionLog(inviterId int, rechargeAmount float64, commiss
 	RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("推广分成：下级用户充值 %.2f，获得佣金 %s（订单号 %s）", rechargeAmount, logger.LogQuota(commissionQuota), tradeNo))
 }
 
-func GetPromotionCommissions(inviterId int, pageInfo *common.PageInfo) (commissions []*PromotionCommission, total int64, err error) {
-	tx := DB.Model(&PromotionCommission{}).Where("inviter_id = ?", inviterId)
-	if err = tx.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err = tx.Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&commissions).Error
-	return commissions, total, err
+// PromotionRecordFilter 推广流水的筛选条件：下级用户（ID 或用户名前缀）与兑换时间区间。
+type PromotionRecordFilter struct {
+	Keyword        string
+	StartTimestamp string
+	EndTimestamp   string
 }
 
-// GetPromotionCommissionSummary 返回上级的累计佣金与分成笔数。
-func GetPromotionCommissionSummary(inviterId int) (totalQuota int64, count int64, err error) {
+func applyPromotionRecordFilter(tx *gorm.DB, inviterId int, filter PromotionRecordFilter) *gorm.DB {
+	query := tx.Where("inviter_id = ?", inviterId)
+	if filter.Keyword != "" {
+		if id, err := strconv.Atoi(filter.Keyword); err == nil {
+			query = query.Where("invitee_id = ?", id)
+		} else {
+			query = query.Where(
+				"invitee_id IN (?)",
+				DB.Model(&User{}).Select("id").Where("username LIKE ?", filter.Keyword+"%"),
+			)
+		}
+	}
+	if filter.StartTimestamp != "" || filter.EndTimestamp != "" {
+		if start, err := strconv.ParseInt(filter.StartTimestamp, 10, 64); err == nil && start > 0 {
+			query = query.Where("create_time >= ?", start)
+		}
+		if end, err := strconv.ParseInt(filter.EndTimestamp, 10, 64); err == nil && end > 0 {
+			query = query.Where("create_time <= ?", end)
+		}
+	}
+	return query
+}
+
+// fillInviteeNames 批量查询下级用户名并填充到流水中。
+func fillInviteeNames(commissions []*PromotionCommission) {
+	if len(commissions) == 0 {
+		return
+	}
+	ids := make([]int, 0, len(commissions))
+	seen := make(map[int]bool, len(commissions))
+	for _, item := range commissions {
+		if item.InviteeId > 0 && !seen[item.InviteeId] {
+			seen[item.InviteeId] = true
+			ids = append(ids, item.InviteeId)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	var users []User
+	if err := DB.Select("id", "username").Where("id IN ?", ids).Find(&users).Error; err != nil {
+		return
+	}
+	names := make(map[int]string, len(users))
+	for _, u := range users {
+		names[u.Id] = u.Username
+	}
+	for _, item := range commissions {
+		item.InviteeName = names[item.InviteeId]
+	}
+}
+
+func GetPromotionCommissions(inviterId int, filter PromotionRecordFilter, pageInfo *common.PageInfo) (commissions []*PromotionCommission, total int64, err error) {
+	query := applyPromotionRecordFilter(DB.Model(&PromotionCommission{}), inviterId, filter)
+	if err = query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err = query.Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&commissions).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	fillInviteeNames(commissions)
+	return commissions, total, nil
+}
+
+// GetPromotionCommissionSummary 返回上级的累计佣金、分成笔数与筛选期佣金合计。
+// 无筛选条件时筛选期佣金与累计值一致。
+func GetPromotionCommissionSummary(inviterId int, filter PromotionRecordFilter) (totalQuota int64, count int64, filteredQuota int64, err error) {
 	var summary struct {
 		TotalQuota int64 `gorm:"column:total_quota"`
 		Count      int64 `gorm:"column:count"`
@@ -131,5 +197,29 @@ func GetPromotionCommissionSummary(inviterId int) (totalQuota int64, count int64
 		Select("COALESCE(SUM(commission_quota), 0) as total_quota, COUNT(*) as count").
 		Where("inviter_id = ?", inviterId).
 		Scan(&summary).Error
-	return summary.TotalQuota, summary.Count, err
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	totalQuota, count = summary.TotalQuota, summary.Count
+
+	hasFilter := filter.Keyword != "" || filter.StartTimestamp != "" || filter.EndTimestamp != ""
+	if !hasFilter {
+		return totalQuota, count, totalQuota, nil
+	}
+	filteredQuery := applyPromotionRecordFilter(DB.Model(&PromotionCommission{}), inviterId, filter)
+	err = filteredQuery.Select("COALESCE(SUM(commission_quota), 0)").Scan(&filteredQuota).Error
+	return totalQuota, count, filteredQuota, err
+}
+
+// GetLatestPromotionCommission 返回上级最近一笔分成记录（无记录时返回 nil）。
+func GetLatestPromotionCommission(inviterId int) (*PromotionCommission, error) {
+	var latest PromotionCommission
+	err := DB.Where("inviter_id = ?", inviterId).Order("id desc").First(&latest).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &latest, nil
 }

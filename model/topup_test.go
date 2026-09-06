@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -146,4 +147,81 @@ func TestTopUpBonusSettlement(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, int(105)*int(common.QuotaPerUnit), quotaToAdd)
+}
+
+// TestPromotionRecordQueryAndFilter 验证推广流水查询：下级用户名填充、
+// 关键字(用户名前缀/数字ID)与时间区间筛选、筛选期佣金汇总与最近一笔分成。
+func TestPromotionRecordQueryAndFilter(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&User{}, &TopUp{}, &PromotionCommission{}))
+	require.NoError(t, DB.Where("1 = 1").Delete(&PromotionCommission{}).Error)
+	require.NoError(t, DB.Where("username LIKE ?", "promo-q-%").Delete(&User{}).Error)
+
+	inviter := &User{Username: "promo-q-inviter", AffCode: "PQINV", Quota: 0}
+	require.NoError(t, DB.Create(inviter).Error)
+	invitee := &User{Username: "promo-q-alice", AffCode: "PQA1", InviterId: inviter.Id, Quota: 0}
+	require.NoError(t, DB.Create(invitee).Error)
+
+	now := common.GetTimestamp()
+	records := []PromotionCommission{
+		{InviterId: inviter.Id, InviteeId: invitee.Id, TradeNo: "PQ-1", RechargeAmount: 100, CommissionQuota: 500, CreateTime: now - 3000},
+		{InviterId: inviter.Id, InviteeId: invitee.Id, TradeNo: "PQ-2", RechargeAmount: 200, CommissionQuota: 1000, CreateTime: now - 1000},
+	}
+	require.NoError(t, DB.Create(&records).Error)
+
+	pageInfo := &common.PageInfo{Page: 1, PageSize: 10}
+
+	// 无筛选：全量 + 下级用户名回填
+	rows, total, err := GetPromotionCommissions(inviter.Id, PromotionRecordFilter{}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, invitee.Username, rows[0].InviteeName)
+	assert.Equal(t, "PQ-2", rows[0].TradeNo, "应按 id desc 排序")
+
+	// 用户名前缀筛选
+	rows, total, err = GetPromotionCommissions(inviter.Id, PromotionRecordFilter{Keyword: "promo-q-al"}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	require.Len(t, rows, 2)
+
+	// 数字关键字按 invitee_id 精确匹配
+	rows, total, err = GetPromotionCommissions(inviter.Id, PromotionRecordFilter{Keyword: fmt.Sprintf("%d", invitee.Id)}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+
+	// 时间区间只命中较早一笔
+	rows, total, err = GetPromotionCommissions(inviter.Id, PromotionRecordFilter{
+		StartTimestamp: fmt.Sprintf("%d", now-3000),
+		EndTimestamp:   fmt.Sprintf("%d", now-2000),
+	}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "PQ-1", rows[0].TradeNo)
+
+	// 汇总：累计 1500，时间筛选期 500
+	totalQuota, count, filteredQuota, err := GetPromotionCommissionSummary(inviter.Id, PromotionRecordFilter{
+		StartTimestamp: fmt.Sprintf("%d", now-3000),
+		EndTimestamp:   fmt.Sprintf("%d", now-2000),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1500), totalQuota)
+	assert.Equal(t, int64(2), count)
+	assert.Equal(t, int64(500), filteredQuota)
+
+	// 无筛选时筛选期佣金与累计一致
+	_, _, filteredQuota, err = GetPromotionCommissionSummary(inviter.Id, PromotionRecordFilter{})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1500), filteredQuota)
+
+	// 最近一笔分成
+	latest, err := GetLatestPromotionCommission(inviter.Id)
+	require.NoError(t, err)
+	require.NotNil(t, latest)
+	assert.Equal(t, "PQ-2", latest.TradeNo)
+
+	// 无记录用户返回 nil，不报错
+	latest, err = GetLatestPromotionCommission(0)
+	require.NoError(t, err)
+	assert.Nil(t, latest)
 }

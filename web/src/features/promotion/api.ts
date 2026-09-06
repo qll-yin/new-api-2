@@ -18,19 +18,27 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
-import type { ApiResponse, PromotionInfoResponse } from './types'
+import type {
+  ApiResponse,
+  PromotionInfoResponse,
+  PromotionSearchParams,
+} from './types'
 
 /**
  * Get promotion campaign info for the current user
  */
 export async function getPromotionInfo(
   page = 1,
-  pageSize = 10
+  pageSize = 10,
+  search: PromotionSearchParams = {}
 ): Promise<PromotionInfoResponse> {
   const params = new URLSearchParams({
     p: String(page),
     page_size: String(pageSize),
   })
+  if (search.keyword) params.set('keyword', search.keyword)
+  if (search.start_timestamp) params.set('start_timestamp', search.start_timestamp)
+  if (search.end_timestamp) params.set('end_timestamp', search.end_timestamp)
   const res = await api.get(`/api/user/promotion?${params.toString()}`)
   return res.data
 }

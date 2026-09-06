@@ -100,6 +100,10 @@ func GetStatus(c *gin.Context) {
 		"price":             operation_setting.Price,
 		"stripe_unit_price": setting.StripeUnitPrice,
 
+		// 推广分成活动(用户端展示开关与比例)
+		"promotion_commission_enabled": common.PromotionCommissionEnabled,
+		"promotion_commission_rate":    common.PromotionCommissionRate,
+
 		// 面板启用开关
 		"api_info_enabled":      cs.ApiInfoEnabled,
 		"uptime_kuma_enabled":   cs.UptimeKumaEnabled,

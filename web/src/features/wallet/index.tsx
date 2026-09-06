@@ -351,6 +351,10 @@ export function Wallet(props: WalletProps) {
                 topupInfo?.payment_compliance_confirmed !== false
               }
               loading={affiliateLoading}
+              campaignEnabled={
+                status?.promotion_commission_enabled === true
+              }
+              campaignRate={Number(status?.promotion_commission_rate ?? 0)}
             />
           </div>
         </SectionPageLayout.Content>

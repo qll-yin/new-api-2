@@ -20,6 +20,7 @@ export interface PromotionCommissionRecord {
   id: number
   inviter_id: number
   invitee_id: number
+  invitee_name?: string
   trade_no: string
   recharge_amount: number
   recharge_quota: number
@@ -36,6 +37,8 @@ export interface PromotionInfoData {
   aff_pending_quota: number
   total_commission_quota: number
   commission_count: number
+  filtered_quota: number
+  last_commission_quota: number
   items: PromotionCommissionRecord[]
   total: number
   page: number
@@ -43,3 +46,9 @@ export interface PromotionInfoData {
 }
 
 export type PromotionInfoResponse = ApiResponse<PromotionInfoData>
+
+export interface PromotionSearchParams {
+  keyword?: string
+  start_timestamp?: string
+  end_timestamp?: string
+}
