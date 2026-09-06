@@ -223,6 +223,7 @@ export function RedemptionsTable() {
                 end ? normalizeRedeemedEnd(end) : undefined
               )
             }}
+            emptyLabel={t('Redeemed time range')}
             className='w-full sm:w-auto'
           />
         ),
