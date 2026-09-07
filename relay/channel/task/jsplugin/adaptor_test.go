@@ -616,6 +616,7 @@ func TestTaskAdaptorRestoresLegacyVideoURLForSuccessfulTasks(t *testing.T) {
 	var video dto.OpenAIVideo
 	require.NoError(t, common.Unmarshal(rendered, &video))
 	assert.Equal(t, "https://upstream.example/video.mp4", video.VideoURL)
+	assert.Equal(t, "https://upstream.example/video.mp4", video.URL)
 	assert.Equal(t, map[string]any{"url": "https://upstream.example/video.mp4"}, video.Metadata)
 
 	// 非成功任务(含旧数据把 URL 存在 FailReason 的情况)不得注入
@@ -627,6 +628,47 @@ func TestTaskAdaptorRestoresLegacyVideoURLForSuccessfulTasks(t *testing.T) {
 	require.NoError(t, common.Unmarshal(rendered, &empty))
 	assert.Empty(t, empty.VideoURL)
 	assert.Nil(t, empty.Metadata)
+}
+
+// 上游响应体(task.Data)中带有 mp4 直链时,优先取直链而非 ResultURL
+// (后者可能是站内 /content 代理地址)。字段优先级:顶层 video_url > url >
+// metadata.*(其中优先 mp4 后缀);非 mp4 链接也可用但排在其后。
+func TestTaskAdaptorPrefersUpstreamDirectVideoURLFromTaskData(t *testing.T) {
+	plugin, err := pluginruntime.NewRegistry().Register(mockPlugin, pluginruntime.Options{})
+	require.NoError(t, err)
+	adaptor := New(plugin)
+
+	task := &model.Task{
+		TaskID: "task_public",
+		Status: model.TaskStatusSuccess,
+		// 轮询时保存的上游 OpenAI 兼容响应体
+		Data: []byte(`{"id":"video_1","status":"completed","video_url":"https://cdn.example/direct.mp4","url":"https://cdn.example/page","metadata":{"final_video_url":"https://cdn.example/final.mp4","origin_video_url":"https://cdn.example/origin.mov"}}`),
+		// ResultURL 已是站内代理地址,应被直链覆盖
+		PrivateData: model.TaskPrivateData{ResultURL: "/v1/videos/task_public/content"},
+		Properties:  model.Properties{OriginModelName: "origin-model"},
+	}
+
+	rendered, err := adaptor.ConvertToOpenAIVideo(task)
+	require.NoError(t, err)
+	var video dto.OpenAIVideo
+	require.NoError(t, common.Unmarshal(rendered, &video))
+	assert.Equal(t, "https://cdn.example/direct.mp4", video.VideoURL, "应优先返回顶层 video_url 的 mp4 直链")
+	assert.Equal(t, video.VideoURL, video.URL)
+	assert.Equal(t, video.VideoURL, video.Metadata["url"])
+
+	// 上游只有非 mp4 链接时也可直接返回
+	task.Data = []byte(`{"status":"completed","url":"https://cdn.example/watch/video"}`)
+	rendered, err = adaptor.ConvertToOpenAIVideo(task)
+	require.NoError(t, err)
+	require.NoError(t, common.Unmarshal(rendered, &video))
+	assert.Equal(t, "https://cdn.example/watch/video", video.VideoURL)
+
+	// 上游没有任何直链时回退到 ResultURL(Sora/Vertex 的 /content 代理)
+	task.Data = []byte(`{"status":"completed"}`)
+	rendered, err = adaptor.ConvertToOpenAIVideo(task)
+	require.NoError(t, err)
+	require.NoError(t, common.Unmarshal(rendered, &video))
+	assert.Equal(t, "/v1/videos/task_public/content", video.VideoURL)
 }
 
 func TestTaskAdaptorPreservesOpenAIVideoFailureSlotsAndOwnsLifecycle(t *testing.T) {

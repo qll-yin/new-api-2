@@ -783,6 +783,61 @@ func (a *TaskAdaptor) applyCompletionUsageFacts(result *relaycommon.TaskInfo, fa
 	}
 }
 
+// extractUpstreamVideoURL 从轮询阶段保存的上游响应体(task.Data)中提取可直接
+// 访问的视频直链。第三方 OpenAI 兼容网关通常在顶层 video_url/url 或 metadata.*
+// 中带回 mp4 直链;优先返回 .mp4 链接(忽略查询参数),否则返回首个 http 链接。
+// 提取不到时返回空串,由调用方回退到站内 /content 代理地址。
+func extractUpstreamVideoURL(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	var payload struct {
+		VideoURL string `json:"video_url"`
+		URL      string `json:"url"`
+		Output   struct {
+			VideoURL string `json:"video_url"`
+			URL      string `json:"url"`
+		} `json:"output"`
+		Metadata struct {
+			VideoURL       string `json:"video_url"`
+			FinalVideoURL  string `json:"final_video_url"`
+			OriginVideoURL string `json:"origin_video_url"`
+			URL            string `json:"url"`
+		} `json:"metadata"`
+	}
+	if err := common.Unmarshal(data, &payload); err != nil {
+		return ""
+	}
+	candidates := []string{
+		payload.VideoURL,
+		payload.URL,
+		payload.Metadata.VideoURL,
+		payload.Metadata.FinalVideoURL,
+		payload.Metadata.OriginVideoURL,
+		payload.Metadata.URL,
+		payload.Output.VideoURL,
+		payload.Output.URL,
+	}
+	direct := ""
+	for _, candidate := range candidates {
+		u := strings.TrimSpace(candidate)
+		if !strings.HasPrefix(u, "http") {
+			continue
+		}
+		path := u
+		if idx := strings.IndexAny(path, "?#"); idx >= 0 {
+			path = path[:idx]
+		}
+		if strings.HasSuffix(strings.ToLower(path), ".mp4") {
+			return u
+		}
+		if direct == "" {
+			direct = u
+		}
+	}
+	return direct
+}
+
 func (a *TaskAdaptor) ConvertToOpenAIVideo(task *model.Task) ([]byte, error) {
 	if task == nil {
 		return nil, fmt.Errorf("task is required")
@@ -818,15 +873,26 @@ func (a *TaskAdaptor) ConvertToOpenAIVideo(task *model.Task) ([]byte, error) {
 	rendered.CreatedAt = host.CreatedAt
 	rendered.Model = host.Model
 	rendered.CompletedAt = host.CompletedAt
+	// 插件 render 输出中的 url 字段不受信任:统一丢弃,仅宿主在任务成功后
+	// 用上游直链(或 /content 代理地址)回填,防止渲染层伪造跳转链接。
+	rendered.URL = ""
+	rendered.VideoURL = ""
 	for key := range rendered.Metadata {
 		if strings.EqualFold(key, "url") {
 			delete(rendered.Metadata, key)
 		}
 	}
-	// 恢复旧版行为:任务成功后把结果地址(上游直链或站内代理地址)带回给 OpenAI 兼容客户端。
+	// 恢复旧版行为:任务成功后把结果地址带回给 OpenAI 兼容客户端。
+	// 优先取上游直链(mp4 优先),让客户端无需再带 key 访问站内 /content 代理;
+	// 提取不到时回退到 ResultURL(Sora/Vertex 等无直链渠道为 /content 代理地址)。
 	// 仅成功任务注入,避免把失败原因文本当作 URL 输出。
 	if task.Status == model.TaskStatusSuccess {
-		if resultURL := strings.TrimSpace(task.GetResultURL()); resultURL != "" {
+		resultURL := extractUpstreamVideoURL(task.Data)
+		if resultURL == "" {
+			resultURL = strings.TrimSpace(task.GetResultURL())
+		}
+		if resultURL != "" {
+			rendered.URL = resultURL
 			rendered.VideoURL = resultURL
 			if rendered.Metadata == nil {
 				rendered.Metadata = make(map[string]any)
