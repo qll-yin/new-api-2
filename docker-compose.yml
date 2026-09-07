@@ -16,7 +16,13 @@ version: '3.4' # For compatibility with older Docker versions
 
 services:
   new-api:
-    image: calciumion/new-api:latest
+    # 二开版：默认从当前仓库源码构建本地镜像（docker compose up -d --build）。
+    # 如需改用官方镜像或私有仓库镜像，注释掉 build 并替换 image 即可。
+    # build 时 VERSION 文件需非空（镜像内版本号），可执行：git describe --tags > VERSION
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: new-api-custom:latest
     container_name: new-api
     restart: always
     command: --log-dir /app/logs
