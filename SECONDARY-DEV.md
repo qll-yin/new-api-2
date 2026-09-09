@@ -145,3 +145,4 @@
 | `eb687cc4` | 时间选择器标签改为"兑换时间范围" |
 | `d9697770` | 视频查询优先返回上游 mp4 直链（重做任务1） |
 | `78fdeee51` | 合并上游 main（19 提交，含审计日志/安全中心/wan3.0/模型管理重构） |
+| `74bf18295` | 合并上游 v1.0.0-rc.36（26 提交）。关键冲突：`adaptor.go` 上游把视频渲染改为 map 化并保留 provider 字段，我方仅保留成功任务时宿主注入 mp4 直链（覆盖插件输出）；`model/topup.go` 保留 Stripe 充值后推广分成入账；`model/user.go` 侧边栏 personal 组保留 `promotion`；兑换码表格采纳上游 `createServerError` 但保留含时间筛选的 `isSearching` 条件 |
