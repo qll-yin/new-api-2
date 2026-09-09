@@ -860,48 +860,43 @@ func (a *TaskAdaptor) ConvertToOpenAIVideo(task *model.Task) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	rendered := kitdto.NewOpenAIVideo()
-	if err = common.Unmarshal(encoded, rendered); err != nil {
+	var rendered map[string]any
+	if err = common.Unmarshal(encoded, &rendered); err != nil || rendered == nil {
 		return nil, fmt.Errorf("plugin returned an invalid OpenAI video object")
 	}
+	// Keep provider extensions intact while the host owns the public task's
+	// identity and lifecycle, including completion timestamps after settlement.
 	host := task.ToOpenAIVideo()
-	rendered.ID = host.ID
-	rendered.Object = host.Object
-	rendered.TaskID = ""
-	rendered.Status = host.Status
-	rendered.Progress = host.Progress
-	rendered.CreatedAt = host.CreatedAt
-	rendered.Model = host.Model
-	rendered.CompletedAt = host.CompletedAt
-	// 插件 render 输出中的 url 字段不受信任:统一丢弃,仅宿主在任务成功后
-	// 用上游直链(或 /content 代理地址)回填,防止渲染层伪造跳转链接。
-	rendered.URL = ""
-	rendered.VideoURL = ""
-	for key := range rendered.Metadata {
-		if strings.EqualFold(key, "url") {
-			delete(rendered.Metadata, key)
-		}
+	rendered["id"] = host.ID
+	rendered["object"] = host.Object
+	delete(rendered, "task_id")
+	rendered["status"] = host.Status
+	rendered["progress"] = host.Progress
+	rendered["created_at"] = host.CreatedAt
+	rendered["model"] = host.Model
+	if host.CompletedAt != 0 {
+		rendered["completed_at"] = host.CompletedAt
+	} else {
+		delete(rendered, "completed_at")
 	}
-	// 恢复旧版行为:任务成功后把结果地址带回给 OpenAI 兼容客户端。
-	// 优先取上游直链(mp4 优先),让客户端无需再带 key 访问站内 /content 代理;
-	// 提取不到时回退到 ResultURL(Sora/Vertex 等无直链渠道为 /content 代理地址)。
-	// 仅成功任务注入,避免把失败原因文本当作 URL 输出。
+	// 插件 render 输出的 provider 扩展字段(含 url)按上游约定原样保留;
+	// 任务成功后由宿主用轮询保存的上游响应体回填直链,保证客户端拿到
+	// 可直接访问的 mp4 地址(而非站内 /content 代理地址)。
 	if task.Status == model.TaskStatusSuccess {
 		resultURL := extractUpstreamVideoURL(task.Data)
 		if resultURL == "" {
 			resultURL = strings.TrimSpace(task.GetResultURL())
 		}
 		if resultURL != "" {
-			rendered.URL = resultURL
-			rendered.VideoURL = resultURL
-			if rendered.Metadata == nil {
-				rendered.Metadata = make(map[string]any)
+			rendered["url"] = resultURL
+			rendered["video_url"] = resultURL
+			metadata, ok := rendered["metadata"].(map[string]any)
+			if !ok || metadata == nil {
+				metadata = make(map[string]any)
+				rendered["metadata"] = metadata
 			}
-			rendered.Metadata["url"] = resultURL
+			metadata["url"] = resultURL
 		}
-	}
-	if len(rendered.Metadata) == 0 {
-		rendered.Metadata = nil
 	}
 	return common.Marshal(rendered)
 }
@@ -1275,9 +1270,7 @@ func (a *TaskAdaptor) submitContext(c *gin.Context, info *relaycommon.RelayInfo)
 	if a.routeRequest != nil {
 		routeRequest = *a.routeRequest
 		requestHeaders = make(map[string]string, len(a.requestHeaders))
-		for name, value := range a.requestHeaders {
-			requestHeaders[name] = value
-		}
+		maps.Copy(requestHeaders, a.requestHeaders)
 		files = append(files, a.files...)
 	}
 	if c != nil {
