@@ -21,10 +21,13 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Copy, History, ListOrdered, Users, Zap } from 'lucide-react'
+import { Copy, History, ListOrdered, Megaphone, Users, Zap } from 'lucide-react'
 
 import { CompactDateTimeRangePicker } from '@/components/compact-date-time-range-picker'
-import { ConfettiCannons } from '@/components/confetti-cannons'
+import {
+  ConfettiCannons,
+  type ConfettiCannonsHandle,
+} from '@/components/confetti-cannons'
 import { CopyButton } from '@/components/copy-button'
 import { FloatingMascot } from '@/components/floating-mascot'
 import { SectionPageLayout } from '@/components/layout'
@@ -46,7 +49,7 @@ import {
 import { formatQuota, formatTimestamp } from '@/lib/format'
 
 import { getPromotionInfo } from './api'
-import type { PromotionInfoData, PromotionSearchParams } from './types'
+import type { PromotionSearchParams } from './types'
 
 const PAGE_SIZE = 10
 
@@ -71,9 +74,7 @@ function StatCell(props: { label: string; value: string; icon?: React.ReactNode 
 export function Promotion() {
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
-  const confettiRef = useRef<React.ComponentRef<typeof ConfettiCannons> | null>(
-    null
-  )
+  const confettiRef = useRef<ConfettiCannonsHandle | null>(null)
   const firedRef = useRef(false)
   const { copyToClipboard } = useCopyToClipboard()
 
@@ -91,9 +92,6 @@ export function Promotion() {
       ? String(Math.floor(range.end.getTime() / 1000))
       : undefined,
   }
-  const hasFilter =
-    !!search.keyword || !!search.start_timestamp || !!search.end_timestamp
-
   const { data: info, isLoading } = useQuery({
     queryKey: [
       'promotion',
@@ -113,6 +111,8 @@ export function Promotion() {
     placeholderData: (previous) => previous,
   })
   const items = info?.items ?? []
+  const rate = info?.rate ?? 0
+  const showSkeleton = isLoading && !info
 
   useEffect(() => {
     // 入场礼炮：仅在活动开启且首次进入时放一发
@@ -359,9 +359,10 @@ export function Promotion() {
 
                 {isLoading && !info ? (
                   <div className='mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className='h-16 rounded-lg' />
-                    ))}
+                    <Skeleton className='h-16 rounded-lg' />
+                    <Skeleton className='h-16 rounded-lg' />
+                    <Skeleton className='h-16 rounded-lg' />
+                    <Skeleton className='h-16 rounded-lg' />
                   </div>
                 ) : (
                   <div className='mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
@@ -474,17 +475,21 @@ export function Promotion() {
                   </span>
                 </div>
 
-                {isLoading && !info ? (
+                {showSkeleton ? (
                   <div className='mt-3 space-y-2'>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className='h-10 w-full' />
-                    ))}
+                    <Skeleton className='h-10 w-full' />
+                    <Skeleton className='h-10 w-full' />
+                    <Skeleton className='h-10 w-full' />
                   </div>
-                ) : items.length === 0 ? (
+                ) : null}
+
+                {!showSkeleton && items.length === 0 ? (
                   <p className='text-muted-foreground py-8 text-center text-sm'>
                     {t('No commission records yet')}
                   </p>
-                ) : (
+                ) : null}
+
+                {!showSkeleton && items.length > 0 ? (
                   <div className='mt-3 overflow-x-auto'>
                     <Table>
                       <TableHeader>
@@ -508,9 +513,7 @@ export function Promotion() {
                             </TableCell>
                             <TableCell className='text-emerald-600 text-xs font-medium tabular-nums'>
                               +{formatQuota(item.commission_quota)}
-                              {item.recharge_amount > 0 && info.rate > 0
-                                ? ` (${info.rate}%)`
-                                : ''}
+                              {item.recharge_amount > 0 && rate > 0 ? ` (${rate}%)` : ''}
                             </TableCell>
                             <TableCell className='text-xs'>
                               {formatTimestamp(item.create_time)}
@@ -520,7 +523,7 @@ export function Promotion() {
                       </TableBody>
                     </Table>
                   </div>
-                )}
+                ) : null}
 
                 {info && totalPages > 1 ? (
                   <div className='mt-3 flex items-center justify-between'>

@@ -225,3 +225,66 @@ func TestPromotionRecordQueryAndFilter(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, latest)
 }
+
+// TestPromotionAdminRecords 验证管理员视图（inviterId<=0 不限上级）的全员流水查询、
+// 上级/下级用户名回填、上级筛选（用户名前缀/数字ID）与汇总口径。
+func TestPromotionAdminRecords(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&User{}, &PromotionCommission{}))
+	require.NoError(t, DB.Where("1 = 1").Delete(&PromotionCommission{}).Error)
+	require.NoError(t, DB.Where("username LIKE ?", "promo-adm-%").Delete(&User{}).Error)
+
+	inviterA := &User{Username: "promo-adm-alpha", AffCode: "PADA1", Quota: 0}
+	require.NoError(t, DB.Create(inviterA).Error)
+	inviterB := &User{Username: "promo-adm-beta", AffCode: "PADB1", Quota: 0}
+	require.NoError(t, DB.Create(inviterB).Error)
+	invitee := &User{Username: "promo-adm-alice", AffCode: "PADC1", InviterId: inviterA.Id, Quota: 0}
+	require.NoError(t, DB.Create(invitee).Error)
+
+	records := []PromotionCommission{
+		{InviterId: inviterA.Id, InviteeId: invitee.Id, TradeNo: "PAD-1", RechargeAmount: 100, CommissionQuota: 500, CreateTime: common.GetTimestamp()},
+		{InviterId: inviterB.Id, InviteeId: invitee.Id, TradeNo: "PAD-2", RechargeAmount: 200, CommissionQuota: 800, CreateTime: common.GetTimestamp()},
+	}
+	require.NoError(t, DB.Create(&records).Error)
+
+	pageInfo := &common.PageInfo{Page: 1, PageSize: 10}
+
+	// 不限上级：两个上级的流水都在，上级与下级用户名都回填
+	rows, total, err := GetPromotionCommissions(0, PromotionRecordFilter{}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	require.Len(t, rows, 2)
+	tradeToRow := map[string]*PromotionCommission{}
+	for _, row := range rows {
+		tradeToRow[row.TradeNo] = row
+	}
+	assert.Equal(t, inviterA.Username, tradeToRow["PAD-1"].InviterName)
+	assert.Equal(t, inviterB.Username, tradeToRow["PAD-2"].InviterName)
+	assert.Equal(t, invitee.Username, tradeToRow["PAD-1"].InviteeName)
+
+	// Username 用户名前缀筛选上级
+	rows, total, err = GetPromotionCommissions(0, PromotionRecordFilter{Username: "promo-adm-be"}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "PAD-2", rows[0].TradeNo)
+
+	// Username 数字按 inviter_id 精确匹配
+	rows, total, err = GetPromotionCommissions(0, PromotionRecordFilter{Username: fmt.Sprintf("%d", inviterA.Id)}, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Equal(t, "PAD-1", rows[0].TradeNo)
+
+	// 汇总：全部用户累计 1300，无筛选时筛选期佣金与累计一致
+	totalQuota, count, filteredQuota, err := GetPromotionCommissionSummary(0, PromotionRecordFilter{})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1300), totalQuota)
+	assert.Equal(t, int64(2), count)
+	assert.Equal(t, int64(1300), filteredQuota)
+
+	// 按上级筛选：累计佣金与笔数保持全站口径，筛选期佣金只含该上级的 500
+	totalQuota, count, filteredQuota, err = GetPromotionCommissionSummary(0, PromotionRecordFilter{Username: inviterA.Username})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1300), totalQuota)
+	assert.Equal(t, int64(2), count)
+	assert.Equal(t, int64(500), filteredQuota)
+}

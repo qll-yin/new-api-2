@@ -82,3 +82,43 @@ func GetPromotionInfo(c *gin.Context) {
 		},
 	})
 }
+
+// GetAllPromotionRecords 返回全部用户的推广分成流水分页与汇总（管理员视图）。
+// username 筛选上级推广人（ID 或用户名前缀），keyword 筛选下级用户。
+func GetAllPromotionRecords(c *gin.Context) {
+	filter := model.PromotionRecordFilter{
+		Username:       c.Query("username"),
+		Keyword:        c.Query("keyword"),
+		StartTimestamp: c.Query("start_timestamp"),
+		EndTimestamp:   c.Query("end_timestamp"),
+	}
+
+	pageInfo := common.GetPageQuery(c)
+	commissions, total, err := model.GetPromotionCommissions(0, filter, pageInfo)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	totalQuota, count, filteredQuota, err := model.GetPromotionCommissionSummary(0, filter)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	if commissions == nil {
+		commissions = []*model.PromotionCommission{}
+	}
+	pageInfo.SetItems(commissions)
+
+	common.ApiSuccess(c, gin.H{
+		"items":     pageInfo.Items,
+		"total":     pageInfo.Total,
+		"page":      pageInfo.Page,
+		"page_size": pageInfo.PageSize,
+		"summary": gin.H{
+			"total_commission_quota": totalQuota,
+			"commission_count":       count,
+			"filtered_quota":         filteredQuota,
+		},
+	})
+}

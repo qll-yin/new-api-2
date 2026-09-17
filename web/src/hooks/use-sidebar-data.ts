@@ -161,6 +161,15 @@ export function useSidebarData(): SidebarData {
             url: '/users',
             icon: Users,
           },
+          ...(promotionEnabled
+            ? [
+                {
+                  title: t('Promotion Management'),
+                  url: '/promotion/records',
+                  icon: Megaphone,
+                },
+              ]
+            : []),
           {
             title: t('Redemption Codes'),
             url: '/redemption-codes',

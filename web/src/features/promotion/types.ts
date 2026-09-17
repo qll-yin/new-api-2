@@ -16,16 +16,48 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  message?: string
+  data?: T
+}
+
 export interface PromotionCommissionRecord {
   id: number
   inviter_id: number
   invitee_id: number
   invitee_name?: string
+  inviter_name?: string
   trade_no: string
   recharge_amount: number
   recharge_quota: number
   commission_quota: number
   create_time: number
+}
+
+// 管理员视图：全站推广分成流水分页 + 汇总
+export interface PromotionAdminSummary {
+  total_commission_quota: number
+  commission_count: number
+  filtered_quota: number
+}
+
+export interface PromotionAdminRecordsData {
+  items: PromotionCommissionRecord[]
+  total: number
+  page: number
+  page_size: number
+  summary: PromotionAdminSummary
+}
+
+export type PromotionAdminRecordsResponse =
+  ApiResponse<PromotionAdminRecordsData>
+
+export interface PromotionAdminSearchParams {
+  username?: string
+  keyword?: string
+  start_timestamp?: string
+  end_timestamp?: string
 }
 
 export interface PromotionInfoData {

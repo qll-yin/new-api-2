@@ -20,6 +20,8 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  PromotionAdminRecordsResponse,
+  PromotionAdminSearchParams,
   PromotionInfoResponse,
   PromotionSearchParams,
 } from './types'
@@ -37,9 +39,31 @@ export async function getPromotionInfo(
     page_size: String(pageSize),
   })
   if (search.keyword) params.set('keyword', search.keyword)
-  if (search.start_timestamp) params.set('start_timestamp', search.start_timestamp)
+  if (search.start_timestamp)
+    params.set('start_timestamp', search.start_timestamp)
   if (search.end_timestamp) params.set('end_timestamp', search.end_timestamp)
   const res = await api.get(`/api/user/promotion?${params.toString()}`)
+  return res.data
+}
+
+/**
+ * Get all users' promotion commission records (admin view)
+ */
+export async function getAllPromotionRecords(
+  page = 1,
+  pageSize = 10,
+  search: PromotionAdminSearchParams = {}
+): Promise<PromotionAdminRecordsResponse> {
+  const params = new URLSearchParams({
+    p: String(page),
+    page_size: String(pageSize),
+  })
+  if (search.username) params.set('username', search.username)
+  if (search.keyword) params.set('keyword', search.keyword)
+  if (search.start_timestamp)
+    params.set('start_timestamp', search.start_timestamp)
+  if (search.end_timestamp) params.set('end_timestamp', search.end_timestamp)
+  const res = await api.get(`/api/user/promotion/records?${params.toString()}`)
   return res.data
 }
 

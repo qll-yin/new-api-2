@@ -23,6 +23,7 @@ type PromotionCommission struct {
 	CommissionQuota int     `json:"commission_quota"` // 上级获得的佣金（quota）
 	CreateTime      int64   `json:"create_time"`
 	InviteeName     string  `json:"invitee_name" gorm:"-"` // 下级用户名（查询后批量填充，不入库）
+	InviterName     string  `json:"inviter_name" gorm:"-"` // 上级用户名（查询后批量填充，不入库）
 }
 
 // grantPromotionCommission 在充值事务内为上级发放推广分成佣金。
@@ -114,15 +115,31 @@ func recordPromotionCommissionLog(inviterId int, rechargeAmount float64, commiss
 	RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("推广分成：下级用户充值 %.2f，获得佣金 %s（订单号 %s）", rechargeAmount, logger.LogQuota(commissionQuota), tradeNo))
 }
 
-// PromotionRecordFilter 推广流水的筛选条件：下级用户（ID 或用户名前缀）与兑换时间区间。
+// PromotionRecordFilter 推广流水的筛选条件：上级（Username，管理员视图用）、
+// 下级用户（Keyword，ID 或用户名前缀）与兑换时间区间。
 type PromotionRecordFilter struct {
+	Username       string
 	Keyword        string
 	StartTimestamp string
 	EndTimestamp   string
 }
 
 func applyPromotionRecordFilter(tx *gorm.DB, inviterId int, filter PromotionRecordFilter) *gorm.DB {
-	query := tx.Where("inviter_id = ?", inviterId)
+	query := tx
+	// inviterId <= 0 表示不限上级（管理员查询全部用户的流水）。
+	if inviterId > 0 {
+		query = query.Where("inviter_id = ?", inviterId)
+	}
+	if filter.Username != "" {
+		if id, err := strconv.Atoi(filter.Username); err == nil {
+			query = query.Where("inviter_id = ?", id)
+		} else {
+			query = query.Where(
+				"inviter_id IN (?)",
+				DB.Model(&User{}).Select("id").Where("username LIKE ?", filter.Username+"%"),
+			)
+		}
+	}
 	if filter.Keyword != "" {
 		if id, err := strconv.Atoi(filter.Keyword); err == nil {
 			query = query.Where("invitee_id = ?", id)
@@ -144,17 +161,19 @@ func applyPromotionRecordFilter(tx *gorm.DB, inviterId int, filter PromotionReco
 	return query
 }
 
-// fillInviteeNames 批量查询下级用户名并填充到流水中。
-func fillInviteeNames(commissions []*PromotionCommission) {
+// fillUserNames 批量查询上级/下级用户名并填充到流水中。
+func fillUserNames(commissions []*PromotionCommission) {
 	if len(commissions) == 0 {
 		return
 	}
-	ids := make([]int, 0, len(commissions))
-	seen := make(map[int]bool, len(commissions))
+	ids := make([]int, 0, len(commissions)*2)
+	seen := make(map[int]bool, len(commissions)*2)
 	for _, item := range commissions {
-		if item.InviteeId > 0 && !seen[item.InviteeId] {
-			seen[item.InviteeId] = true
-			ids = append(ids, item.InviteeId)
+		for _, id := range [...]int{item.InviterId, item.InviteeId} {
+			if id > 0 && !seen[id] {
+				seen[id] = true
+				ids = append(ids, id)
+			}
 		}
 	}
 	if len(ids) == 0 {
@@ -170,9 +189,11 @@ func fillInviteeNames(commissions []*PromotionCommission) {
 	}
 	for _, item := range commissions {
 		item.InviteeName = names[item.InviteeId]
+		item.InviterName = names[item.InviterId]
 	}
 }
 
+// GetPromotionCommissions 返回推广流水分页；inviterId <= 0 时不限上级（管理员视图）。
 func GetPromotionCommissions(inviterId int, filter PromotionRecordFilter, pageInfo *common.PageInfo) (commissions []*PromotionCommission, total int64, err error) {
 	query := applyPromotionRecordFilter(DB.Model(&PromotionCommission{}), inviterId, filter)
 	if err = query.Count(&total).Error; err != nil {
@@ -182,27 +203,29 @@ func GetPromotionCommissions(inviterId int, filter PromotionRecordFilter, pageIn
 	if err != nil {
 		return nil, 0, err
 	}
-	fillInviteeNames(commissions)
+	fillUserNames(commissions)
 	return commissions, total, nil
 }
 
 // GetPromotionCommissionSummary 返回上级的累计佣金、分成笔数与筛选期佣金合计。
-// 无筛选条件时筛选期佣金与累计值一致。
+// 无筛选条件时筛选期佣金与累计值一致；inviterId <= 0 时统计全部用户（管理员视图）。
 func GetPromotionCommissionSummary(inviterId int, filter PromotionRecordFilter) (totalQuota int64, count int64, filteredQuota int64, err error) {
 	var summary struct {
 		TotalQuota int64 `gorm:"column:total_quota"`
 		Count      int64 `gorm:"column:count"`
 	}
-	err = DB.Model(&PromotionCommission{}).
-		Select("COALESCE(SUM(commission_quota), 0) as total_quota, COUNT(*) as count").
-		Where("inviter_id = ?", inviterId).
-		Scan(&summary).Error
+	summaryQuery := DB.Model(&PromotionCommission{}).
+		Select("COALESCE(SUM(commission_quota), 0) as total_quota, COUNT(*) as count")
+	if inviterId > 0 {
+		summaryQuery = summaryQuery.Where("inviter_id = ?", inviterId)
+	}
+	err = summaryQuery.Scan(&summary).Error
 	if err != nil {
 		return 0, 0, 0, err
 	}
 	totalQuota, count = summary.TotalQuota, summary.Count
 
-	hasFilter := filter.Keyword != "" || filter.StartTimestamp != "" || filter.EndTimestamp != ""
+	hasFilter := filter.Username != "" || filter.Keyword != "" || filter.StartTimestamp != "" || filter.EndTimestamp != ""
 	if !hasFilter {
 		return totalQuota, count, totalQuota, nil
 	}
