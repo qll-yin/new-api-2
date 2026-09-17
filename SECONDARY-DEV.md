@@ -17,6 +17,8 @@
 | 3 | 充值"充多少送多少"（按金额赠送） | ✅ | `6612da51` |
 | 4 | 兑换码按兑换时间范围筛选 | ✅ | `a9c08252`、`0edf297e`、`47eee7e8`、`ffd4c30b`、`eb687cc4` |
 | 5 | 侧边栏推广菜单跟随活动开关 | ✅ | `99772e01`、`1b39aa4c` |
+| 6 | 公告弹窗提醒（未读公告自动弹出） | ✅ | `72782a1ee`、`d9834b590` |
+| 7 | 推广分成管理员视图（全员明细+筛选） | ✅ | `6ac00e511` |
 
 ---
 
@@ -109,8 +111,48 @@
 | `web/src/hooks/use-sidebar-data.ts` | 推广菜单项 + `promotionEnabled` 开关联动 |
 | `web/src/components/compact-date-time-range-picker.tsx` | 自 usage-logs 提升为共享组件，新增可选 `emptyLabel`（上游新页面如用相对路径引用旧位置，合并时需改回 `@/components/...`——审计页已踩过一次） |
 | `web/src/components/confetti-cannons.tsx` / `floating-mascot.tsx` | 新增共享动效组件 |
-| `web/src/features/promotion/`、`web/src/routes/_authenticated/promotion/` | 推广活动页 |
+| `web/src/components/announcement-popup.tsx` | 公告弹窗（纯前端，挂载于 `AuthenticatedLayout`） |
+| `web/src/hooks/use-notifications.ts` | 导出 `getAnnouncementKey`、新增 `unreadAnnouncementItems`（弹窗消费） |
+| `web/src/features/promotion/`、`web/src/routes/_authenticated/promotion/` | 推广活动页 + 管理员明细页（`records.tsx`） |
 | `model/user.go` | 默认侧边栏配置 `personal.promotion: true` |
+
+---
+
+## 6. 公告弹窗提醒
+
+### 需求
+消息中心在右上角不够显眼，希望已登录用户进入后台时，有未读公告就直接弹出消息框（新模型上线等公告能第一时间触达），且弹窗动效强、可多条公告间切换。
+
+### 行为口径
+- **弹出条件**：数据加载完成 && 未读总数 > 0 && 非当日"今日不再提醒" && 本次进入后台未弹过（刷新页面重新判断）。未读 = 未读 Notice 计 1 + 每条未读 Announcement 计 1。
+- **"我知道了"**：把弹窗展示的全部未读项标记已读（`notification-store`，localStorage 持久化）→ 下次不再弹、红点消失。
+- **"今日不再提醒"**：写 `closedUntilDate`（当天不再自动弹）但**不标已读**（红点保留）。该字段为 store 原生既有能力的首次接线。
+- 关闭弹窗（Esc / 点遮罩）不标已读，本次会话不再弹。
+- **纯前端实现，零后端改动**（公告已读状态本就存前端 localStorage）。
+
+### 实现
+- `web/src/components/announcement-popup.tsx`：面板三段式 flex 布局（头部/底部 `shrink-0`，正文 `min-h-0 flex-1` 原生 `overflow-y-auto`），限高 `min(92vh, 56rem)`、宽 `max-w-3xl`——长公告可滚动、按钮永不遮挡（`d9834b590` 修复 ScrollArea 视口不滚动 + 溢出盖按钮的问题）。
+- 动效：面板 spring 缩放+模糊入场、公告间带方向的左右滑动切换（`AnimatePresence mode='wait'`）、脉冲喇叭、未读公告含 `success` 类型时自动放一发彩纸礼炮；全部尊重 `prefers-reduced-motion`；支持 ←/→/Esc 键盘操作。
+- 复用：`useNotifications()`（React Query 去重，零额外请求）、`RichContent` 渲染 markdown、`getAnnouncementColorClass` 类型色点、`ConfettiCannons`。
+- i18n：`New Announcement` / `{{count}} unread announcements` / `Don't remind me today` / `I understand` 等 key 已同步 7 语言文件。
+
+---
+
+## 7. 推广分成管理员视图
+
+### 需求
+管理员查看**全部用户**的推广分成明细，支持按推广人筛选（独立"推广管理"菜单项，仅管理员可见）。
+
+### 后端
+- `GET /api/user/promotion/records`（`adminRoute` + `middleware.AdminAuth()`）：全站分成流水分页 + 汇总（全站累计佣金 / 总笔数 / 当前筛选期合计，`summary` 字段）。
+- 筛选参数：`username`（**推广人**，纯数字按 `inviter_id` 精确、否则用户名前缀子查询）、`keyword`（下级，同用户端口径）、`start_timestamp` / `end_timestamp`。
+- `model/promotion_commission.go`：`inviterId <= 0` 语义为"不限上级"（管理员视图）；`PromotionRecordFilter` 新增 `Username`；`fillInviteeNames` 泛化为 `fillUserNames`（一次查询同时回填上级/下级用户名）；`PromotionCommission` 新增 `InviterName`（`gorm:"-"` 展示字段，**无 schema 变更**）。
+- 测试：`model/topup_test.go` `TestPromotionAdminRecords`（全员查询 / 上级筛选两形态 / 汇总口径）。
+
+### 前端
+- `web/src/routes/_authenticated/promotion/records.tsx`：`beforeLoad` 角色守卫（非管理员跳 403）+ zod `validateSearch`（`page`/`pageSize`/`username`/`keyword`/时间戳，筛选同步 URL）。
+- `web/src/features/promotion/admin-records.tsx`：汇总卡 + 推广人/下级/时间三重筛选 + 明细表（推广人、下级、订单号带复制、充值金额、佣金、时间），分页沿用推广页同款。
+- 侧边栏 Admin 组 "Users" 下新增"推广管理"（`Megaphone` 图标），**受 `promotion_commission_enabled` 开关控制**（关闭时隐藏，同用户端菜单口径）。
 
 ---
 
@@ -120,11 +162,13 @@
    - `relay/channel/task/jsplugin/adaptor.go`、`relaykit/dto/openai_video.go`（视频直链逻辑）
    - `model/topup.go`、`controller/topup*.go`（赠送/佣金结算，上游若改结算结构需人工核对快照字段仍生效）
    - `web/src/hooks/use-sidebar-data.ts`、`use-sidebar-config.ts`（上游常加菜单项）
+   - `web/src/hooks/use-notifications.ts`、`web/src/components/layout/components/authenticated-layout.tsx`（上游若重写消息中心/布局，需核对 `getAnnouncementKey` 导出与弹窗挂载点）
+   - `router/api-router.go`（上游也常改路由表，核对 adminRoute 下 `/promotion/records` 仍在）
    - `web/src/i18n/locales/*.json`（合并策略：取上游版 → 脚本回填我们的键 → `bun run i18n:sync`）
    - `controller/misc.go`（status 下发字段）
 2. **工厂插件（`plugins/tasks/*/plugin.js`）不改**：视频直链等定制一律在宿主 Go 层做，避免与上游插件更新冲突（wan3.0 等上游新模型直接吃上游更新）。
 3. **locale 只能通过脚本写**：`web/scripts/` 下临时脚本 + `bun run i18n:sync`，键为英文源串，7 语言文件必须同步。
-4. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bunx tsc --noEmit` + `bun run build`（tsc 有缓存，rspack 构建才能暴露相对路径断裂类问题）。
+4. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bun run typecheck` + `bun run build`（构建才能暴露相对路径断裂类问题）。
 5. **数据库**：schema 变更仅在真实 SQLite 上验证（用户约定）；上游合入含迁移改动时，启动前备份 SQLite 库文件。
 
 ---
@@ -146,3 +190,6 @@
 | `d9697770` | 视频查询优先返回上游 mp4 直链（重做任务1） |
 | `78fdeee51` | 合并上游 main（19 提交，含审计日志/安全中心/wan3.0/模型管理重构） |
 | `74bf18295` | 合并上游 v1.0.0-rc.36（26 提交）。关键冲突：`adaptor.go` 上游把视频渲染改为 map 化并保留 provider 字段，我方仅保留成功任务时宿主注入 mp4 直链（覆盖插件输出）；`model/topup.go` 保留 Stripe 充值后推广分成入账；`model/user.go` 侧边栏 personal 组保留 `promotion`；兑换码表格采纳上游 `createServerError` 但保留含时间筛选的 `isSearching` 条件 |
+| `72782a1ee` | 公告弹窗提醒（弹窗组件 + 挂载 + useNotifications 扩展 + i18n 7 语言） |
+| `6ac00e511` | 推广分成管理员视图（全员明细 API /promotion/records 页面/菜单/测试；顺带修复 promotion/index.tsx 既有类型错误与 mobile-filter 测试导入路径） |
+| `d9834b590` | 公告弹窗修复：长内容滚动 + 按钮遮挡，整体加大宽高 |
