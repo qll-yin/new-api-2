@@ -1,3 +1,4 @@
+import { AnnouncementPopup } from '@/components/announcement-popup'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -39,6 +40,7 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
       <SearchProvider>
         <SidebarProvider defaultOpen={defaultOpen} className='flex-col'>
           <SkipToMain />
+          <AnnouncementPopup />
           <AppHeader />
           <div className='flex min-h-0 w-full flex-1'>
             <AppSidebar />

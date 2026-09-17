@@ -41,7 +41,7 @@ function hashString(input: string): string {
  * Generate a unique key for an announcement
  * Prefer backend id, fall back to a content hash so edits register
  */
-function getAnnouncementKey(item: Record<string, unknown>): string {
+export function getAnnouncementKey(item: Record<string, unknown>): string {
   if (!item) return ''
 
   if (item.id !== undefined && item.id !== null) {
@@ -105,23 +105,23 @@ export function useNotifications() {
     : ''
 
   // Calculate unread counts
+  const unreadAnnouncementItems = useMemo(() => {
+    return announcements.filter((item: Record<string, unknown>) => {
+      const key = getAnnouncementKey(item)
+      return !isAnnouncementRead(key)
+    })
+  }, [announcements, isAnnouncementRead])
+
   const unreadCounts = useMemo(() => {
     const noticeUnread =
       noticeContent && noticeContent !== lastReadNotice ? 1 : 0
 
-    const announcementsUnread = announcements.filter(
-      (item: Record<string, unknown>) => {
-        const key = getAnnouncementKey(item)
-        return !isAnnouncementRead(key)
-      }
-    ).length
-
     return {
       notice: noticeUnread,
-      announcements: announcementsUnread,
-      total: noticeUnread + announcementsUnread,
+      announcements: unreadAnnouncementItems.length,
+      total: noticeUnread + unreadAnnouncementItems.length,
     }
-  }, [noticeContent, lastReadNotice, announcements, isAnnouncementRead])
+  }, [noticeContent, lastReadNotice, unreadAnnouncementItems])
 
   const markAnnouncementsAsRead = () => {
     if (announcements.length > 0) {
@@ -176,6 +176,7 @@ export function useNotifications() {
     unreadCount: unreadCounts.total,
     unreadNoticeCount: unreadCounts.notice,
     unreadAnnouncementsCount: unreadCounts.announcements,
+    unreadAnnouncementItems,
 
     // Popover state
     popoverOpen,
