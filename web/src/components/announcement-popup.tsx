@@ -32,7 +32,6 @@ import {
 } from '@/components/confetti-cannons'
 import { RichContent } from '@/components/rich-content'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { getAnnouncementKey, useNotifications } from '@/hooks/use-notifications'
 import { getAnnouncementColorClass } from '@/lib/colors'
 import { MOTION_TRANSITION } from '@/lib/motion'
@@ -219,7 +218,7 @@ export function AnnouncementPopup() {
               role='dialog'
               aria-modal='true'
               aria-label={t('New Announcement')}
-              className='bg-background relative w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl'
+              className='bg-background relative flex max-h-[min(92vh,56rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border shadow-2xl'
               initial={
                 reduceMotion
                   ? false
@@ -236,7 +235,7 @@ export function AnnouncementPopup() {
               transition={MOTION_TRANSITION.spring}
             >
               {/* 顶部渐变横幅 + 脉冲喇叭 */}
-              <div className='from-primary/15 via-primary/5 relative overflow-hidden bg-gradient-to-br to-transparent px-5 pt-5 pb-4'>
+              <div className='from-primary/15 via-primary/5 relative shrink-0 overflow-hidden bg-gradient-to-br to-transparent px-5 pt-5 pb-4'>
                 <div
                   aria-hidden='true'
                   className='bg-primary/10 pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full blur-2xl'
@@ -269,8 +268,8 @@ export function AnnouncementPopup() {
                 </div>
               </div>
 
-              {/* 公告正文：多条时左右滑动切换 */}
-              <ScrollArea className='max-h-[min(50vh,420px)] px-5'>
+              {/* 公告正文：多条时左右滑动切换；flex-1 + 原生滚动保证长内容可滚动 */}
+              <div className='min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5'>
                 <AnimatePresence mode='wait' custom={direction} initial={false}>
                   <motion.div
                     key={current.key}
@@ -308,10 +307,10 @@ export function AnnouncementPopup() {
                     ) : null}
                   </motion.div>
                 </AnimatePresence>
-              </ScrollArea>
+              </div>
 
               {/* 底部：切换导航 + 操作按钮 */}
-              <div className='flex flex-wrap items-center justify-between gap-2 border-t px-5 py-3'>
+              <div className='flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-5 py-3'>
                 {items.length > 1 ? (
                   <div className='flex items-center gap-1.5'>
                     <Button
