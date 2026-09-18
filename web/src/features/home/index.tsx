@@ -25,8 +25,11 @@ import { RichContent } from '@/components/rich-content'
 import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { CTA, Features, Hero, HowItWorks, Stats } from './components'
+import { HomepageTheme } from './homepage'
+import { HomeEasterEgg } from './homepage/easter-egg'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
@@ -36,6 +39,7 @@ export function Home() {
   const { auth } = useAuthStore()
   const isAuthenticated = !!auth.user
   const { content, isLoaded, isUrl } = useHomePageContent()
+  const { config } = useSystemConfigStore()
 
   const syncIframePreferences = useCallback(() => {
     try {
@@ -120,14 +124,24 @@ export function Home() {
     )
   }
 
+  // 无自定义内容：按后台「默认首页主题」渲染 classic / 7code 两套主题
+  const isSevenCodeTheme = config.homePageTheme === '7code'
+
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <Stats />
-      <Features />
-      <HowItWorks />
-      <CTA isAuthenticated={isAuthenticated} />
-      <Footer />
+      <HomeEasterEgg url={config.homePageEasterEggUrl} />
+      {isSevenCodeTheme ? (
+        <HomepageTheme />
+      ) : (
+        <>
+          <Hero isAuthenticated={isAuthenticated} />
+          <Stats />
+          <Features />
+          <HowItWorks />
+          <CTA isAuthenticated={isAuthenticated} />
+          <Footer />
+        </>
+      )}
     </PublicLayout>
   )
 }

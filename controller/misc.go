@@ -115,6 +115,10 @@ func GetStatus(c *gin.Context) {
 		"HeaderNavModules":    common.OptionMap["HeaderNavModules"],
 		"SidebarModulesAdmin": common.OptionMap["SidebarModulesAdmin"],
 
+		// 首页默认主题（无自定义内容时生效）与首页彩蛋跳转地址（留空关闭）
+		"home_page_theme":          common.OptionMap["HomePageTheme"],
+		"home_page_easter_egg_url": common.OptionMap["HomePageEasterEggUrl"],
+
 		"oidc_enabled":                system_setting.GetOIDCSettings().Enabled,
 		"oidc_client_id":              system_setting.GetOIDCSettings().ClientId,
 		"oidc_authorization_endpoint": system_setting.GetOIDCSettings().AuthorizationEndpoint,

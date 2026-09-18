@@ -41,6 +41,8 @@ const SITE_SECTIONS = [
           Footer: settings.Footer,
           About: settings.About,
           HomePageContent: settings.HomePageContent,
+          HomePageTheme: settings.HomePageTheme as 'classic' | '7code',
+          HomePageEasterEggUrl: settings.HomePageEasterEggUrl,
           ServerAddress: settings.ServerAddress,
           TaskPublicAddress: settings.TaskPublicAddress,
           legal: {

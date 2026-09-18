@@ -31,6 +31,14 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
@@ -54,6 +62,8 @@ const _systemInfoSchema = z.object({
   Footer: z.string().optional(),
   About: z.string().optional(),
   HomePageContent: z.string().optional(),
+  HomePageTheme: z.enum(['classic', '7code']),
+  HomePageEasterEggUrl: z.string().url().optional().or(z.literal('')),
   legal: z.object({
     user_agreement: z.string().optional(),
     privacy_policy: z.string().optional(),
@@ -83,6 +93,11 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     Footer: normalizeValue(defaultValues.Footer),
     About: normalizeValue(defaultValues.About),
     HomePageContent: normalizeValue(defaultValues.HomePageContent),
+    HomePageTheme:
+      normalizeValue(defaultValues.HomePageTheme) === '7code'
+        ? '7code'
+        : 'classic',
+    HomePageEasterEggUrl: normalizeValue(defaultValues.HomePageEasterEggUrl),
     legal: {
       user_agreement: normalizeValue(defaultValues.legal?.user_agreement),
       privacy_policy: normalizeValue(defaultValues.legal?.privacy_policy),
@@ -104,6 +119,8 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     Footer: z.string().optional(),
     About: z.string().optional(),
     HomePageContent: z.string().optional(),
+    HomePageTheme: z.enum(['classic', '7code']),
+    HomePageEasterEggUrl: z.string().url().optional().or(z.literal('')),
     legal: z.object({
       user_agreement: z.string().optional(),
       privacy_policy: z.string().optional(),
@@ -297,6 +314,66 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                   )}
                 />
               </SettingsFormGridItem>
+
+              <FormField
+                control={form.control}
+                name='HomePageTheme'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Default Home Page Theme')}</FormLabel>
+                    <Select
+                      items={[
+                        { value: 'classic', label: t('Classic') },
+                        { value: '7code', label: t('7Code') },
+                      ]}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('Classic')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent alignItemWithTrigger={false}>
+                        <SelectGroup>
+                          <SelectItem value='classic'>
+                            {t('Classic')}
+                          </SelectItem>
+                          <SelectItem value='7code'>{t('7Code')}</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {t(
+                        'Theme used for the default home page when no custom home page content is configured'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='HomePageEasterEggUrl'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Home Page Easter Egg URL')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='https://example.com/surprise'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Opened in a new tab after 5 quick consecutive clicks on the home page, leave empty to disable'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

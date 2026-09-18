@@ -147,6 +147,8 @@ export type SiteSettings = {
   Footer: string
   About: string
   HomePageContent: string
+  HomePageTheme: string
+  HomePageEasterEggUrl: string
   ServerAddress: string
   TaskPublicAddress: string
   'legal.user_agreement': string

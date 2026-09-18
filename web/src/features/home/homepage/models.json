@@ -1,0 +1,30 @@
+{
+  "models": [
+    { "name": "Claude", "icon": "Claude.Color", "tag": "对话" },
+    { "name": "ChatGPT", "icon": "OpenAI", "tag": "对话" },
+    { "name": "Grok", "icon": "Grok", "tag": "对话" },
+    { "name": "Gemini", "icon": "Gemini.Color", "tag": "对话" },
+    { "name": "DeepSeek", "icon": "DeepSeek.Color", "tag": "对话" },
+    { "name": "Kimi", "icon": "Kimi.Color", "tag": "对话" },
+    { "name": "通义千问", "icon": "Qwen.Color", "tag": "对话" },
+    { "name": "豆包", "icon": "Doubao.Color", "tag": "对话" },
+    { "name": "混元", "icon": "Hunyuan.Color", "tag": "对话" },
+    { "name": "智谱", "icon": "Zhipu.Color", "tag": "对话" },
+    { "name": "海螺", "icon": "Hailuo.Color", "tag": "对话" },
+    { "name": "Seedance", "icon": "Seedance", "tag": "生视频" },
+    { "name": "可灵", "icon": "Kling.Color", "tag": "生视频" },
+    { "name": "即梦", "icon": "Jimeng.Color", "tag": "生视频" },
+    { "name": "Sora", "icon": "Sora.Color", "tag": "生视频" },
+    { "name": "Runway", "icon": "Runway", "tag": "生视频" },
+    { "name": "Vidu", "icon": "Vidu.Color", "tag": "生视频" },
+    { "name": "Pika", "icon": "Pika", "tag": "生视频" },
+    { "name": "Luma", "icon": "Luma.Color", "tag": "生视频" },
+    { "name": "Midjourney", "icon": "Midjourney", "tag": "生图" },
+    { "name": "Flux", "icon": "Flux", "tag": "生图" },
+    { "name": "Stable Diffusion", "icon": "Stability.Color", "tag": "生图" },
+    { "name": "DALL·E", "icon": "Dalle.Color", "tag": "生图" },
+    { "name": "Suno", "icon": "Suno", "tag": "音乐" },
+    { "name": "Udio", "icon": "Udio.Color", "tag": "音乐" },
+    { "name": "ElevenLabs", "icon": "ElevenLabs", "tag": "语音" }
+  ]
+}

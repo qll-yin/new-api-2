@@ -94,6 +94,9 @@ export function mapStatusDataToConfig(
   return {
     systemName: (data.system_name as string | undefined) || DEFAULT_SYSTEM_NAME,
     logo: (data.logo as string | undefined) || DEFAULT_LOGO,
+    homePageTheme: (data.home_page_theme as string | undefined) || 'classic',
+    homePageEasterEggUrl:
+      (data.home_page_easter_egg_url as string | undefined) || '',
     footerHtml: data.footer_html as string | undefined,
     demoSiteEnabled: data.demo_site_enabled as boolean | undefined,
     displayTokenStatEnabled: data.display_token_stat_enabled as

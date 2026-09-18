@@ -31,6 +31,8 @@ const defaultSiteSettings: SiteSettings = {
   Footer: '',
   About: '',
   HomePageContent: '',
+  HomePageTheme: 'classic',
+  HomePageEasterEggUrl: '',
   ServerAddress: '',
   TaskPublicAddress: '',
   'legal.user_agreement': '',

@@ -44,6 +44,10 @@ export interface SystemConfig {
   footerHtml?: string
   demoSiteEnabled?: boolean
   displayTokenStatEnabled?: boolean
+  /** 默认首页主题（未配置自定义首页内容时生效） */
+  homePageTheme: string
+  /** 首页彩蛋跳转地址（留空关闭） */
+  homePageEasterEggUrl: string
   currency: CurrencyConfig
 }
 
@@ -75,6 +79,8 @@ export const useSystemConfigStore = create<SystemConfigState>()(
       config: {
         systemName: DEFAULT_SYSTEM_NAME,
         logo: DEFAULT_LOGO,
+        homePageTheme: 'classic',
+        homePageEasterEggUrl: '',
         currency: { ...DEFAULT_CURRENCY_CONFIG },
       },
       loading: true,
