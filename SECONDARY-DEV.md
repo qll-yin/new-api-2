@@ -19,6 +19,7 @@
 | 5 | 侧边栏推广菜单跟随活动开关 | ✅ | `99772e01`、`1b39aa4c` |
 | 6 | 公告弹窗提醒（未读公告自动弹出） | ✅ | `72782a1ee`、`d9834b590` |
 | 7 | 推广分成管理员视图（全员明细+筛选） | ✅ | `6ac00e511` |
+| 8 | 默认首页双主题（经典/7Code）+ 首页彩蛋 | ✅ | `4ba4328bf` |
 
 ---
 
@@ -156,6 +157,36 @@
 
 ---
 
+## 8. 默认首页双主题（经典 / 7Code）+ 首页彩蛋
+
+### 需求
+默认首页（管理员未配置自定义内容时）不再只有原版一套：后台可选"经典"或"7Code"两套主题；另加首页彩蛋——用户在首页连续快速点击 5 次后弹窗提示并新标签页打开后台配置的 URL（留空关闭）。
+
+### 行为口径
+- 优先级不变：管理员配置了 `HomePageContent`（URL/HTML/Markdown）→ 按配置渲染；**未配置** → 按 `HomePageTheme` 渲染 classic / 7code。
+- 7code 主题渲染在 `PublicLayout` 内：顶栏（消息通知/语言切换/登录）与页脚用站内的，7code 原版 Navbar/Footer 不搬。
+- 7code 主题跟随站内明暗模式（暗色 = 原版近黑宝蓝，亮色 = 同布局浅色版）与 7 语言切换。
+- 彩蛋：2.5s 窗口内点击 5 次（链接/按钮等交互元素上的点击不计数）→ 弹窗 → 1.2s 后 `window.open(url, '_blank', 'noopener')`；弹窗被浏览器拦截时降级为"立即前往"按钮；点击遮罩取消。**classic 与 7code 都生效**。
+
+### 后端（无 schema 变更）
+- `model/option.go`：注册 `HomePageTheme`（默认 `classic`，合法值 `classic`/`7code`）与 `HomePageEasterEggUrl`（默认空）。走通用 option 持久化。
+- `controller/misc.go`：`/api/status` 下发 `home_page_theme`、`home_page_easter_egg_url`（公开字段，游客可读）。
+
+### 前端
+- 新目录 `web/src/features/home/homepage/`：7code 主题全套。
+  - **配置层（手动改这几个文件即可）**：`site.ts`（链接/视频地址/base_url 展示）、`data.ts`（画廊条目/统计/定价卡/FAQ 结构）、`models.json`（跑马灯模型列表，图标名映射在 `brand-icons.tsx`）。
+  - 区块：`sections/`（hero 打字机+终端演示、brand-marquee 模型跑马灯、flow-gallery 作品画廊、capabilities 四大能力、stats-band 数字滚动、pricing 定价、faq）；动效库 `lib/`（AuroraBackground 粒子、Terminal、TiltCard、Reveal）。
+  - `homepage.css`：`.hp-theme` 作用域变量（亮色默认 + `.dark-theme` 暗色），特效类 `hp-glass/hp-shine/hp-glow-border` 等；keyframes 带 `hp-` 前缀避免与上游冲突。
+  - 站内链接走 TanStack Router `<Link>` SPA 跳转（`lib/link.ts` 的 `configLinkProps`：相对路径 → Link，完整 URL → 新标签 a 标签）。
+  - i18n：homepage 独立命名空间（`useTranslation('homepage')`），7 语言文件根级 `"homepage"` 字典各 87 keys；`sync-i18n.mjs` 只扫 `translation`，homepage 字典需手工保持 7 语言同构。
+- `web/src/features/home/index.tsx`：默认分支按 `config.homePageTheme` 二选一；`<HomeEasterEgg />` 挂在两套主题之外（PublicLayout 内）。
+- 状态链路：`system-config-store.ts`（+`homePageTheme`/`homePageEasterEggUrl`）← `status-query.ts` map（+`home_page_theme`/`home_page_easter_egg_url`）。
+- 后台设置：站点设置 → 系统信息（`system-info-section.tsx`）新增"默认首页主题"下拉（Classic/7Code）与"首页彩蛋链接"输入框（URL 校验、可空）。
+- 资源：`web/public/images/homepage/`（画廊 11 张 WebP，原图 16MB → 1.3MB）、`web/public/videos/homepage/video-1.mp4`（2.8MB，能力卡悬停播放；`site.ts` 的 `videos.demoUrl` 可改为外链）。
+- 旧 classic 首页组件（`web/src/features/home/components/`）**保留未动**，仅不再默认渲染。
+
+---
+
 ## 与上游同步（merge）注意事项
 
 1. **敏感文件**（我们改过、上游也常改，合并后必查）：
@@ -164,8 +195,11 @@
    - `web/src/hooks/use-sidebar-data.ts`、`use-sidebar-config.ts`（上游常加菜单项）
    - `web/src/hooks/use-notifications.ts`、`web/src/components/layout/components/authenticated-layout.tsx`（上游若重写消息中心/布局，需核对 `getAnnouncementKey` 导出与弹窗挂载点）
    - `router/api-router.go`（上游也常改路由表，核对 adminRoute 下 `/promotion/records` 仍在）
-   - `web/src/i18n/locales/*.json`（合并策略：取上游版 → 脚本回填我们的键 → `bun run i18n:sync`）
-   - `controller/misc.go`（status 下发字段）
+   - `web/src/i18n/locales/*.json`（合并策略：取上游版 → 脚本回填我们的键 → `bun run i18n:sync`；注意 `homepage` 命名空间是我们整块新增，冲突时整体保留我方）
+   - `controller/misc.go`（status 下发字段：`home_page_theme` / `home_page_easter_egg_url` 与上游新字段共存即可）
+   - `web/src/features/home/index.tsx`（上游若改默认首页结构，需保留 classic/7code 分支与彩蛋挂载）
+   - `web/src/stores/system-config-store.ts`、`web/src/lib/status-query.ts`（上游加 status 字段时保留我方两字段映射）
+   - `web/src/features/system-settings/general/system-info-section.tsx`（上游若改站点设置表单，需回填主题下拉与彩蛋 URL 两字段）
 2. **工厂插件（`plugins/tasks/*/plugin.js`）不改**：视频直链等定制一律在宿主 Go 层做，避免与上游插件更新冲突（wan3.0 等上游新模型直接吃上游更新）。
 3. **locale 只能通过脚本写**：`web/scripts/` 下临时脚本 + `bun run i18n:sync`，键为英文源串，7 语言文件必须同步。
 4. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bun run typecheck` + `bun run build`（构建才能暴露相对路径断裂类问题）。
@@ -193,3 +227,6 @@
 | `72782a1ee` | 公告弹窗提醒（弹窗组件 + 挂载 + useNotifications 扩展 + i18n 7 语言） |
 | `6ac00e511` | 推广分成管理员视图（全员明细 API /promotion/records 页面/菜单/测试；顺带修复 promotion/index.tsx 既有类型错误与 mobile-filter 测试导入路径） |
 | `d9834b590` | 公告弹窗修复：长内容滚动 + 按钮遮挡，整体加大宽高 |
+| `9e420be3c` | docs: SECONDARY-DEV 补录公告弹窗与推广分成管理员视图 |
+| `2f18e6dec` | 合并上游 main（65 提交，冲突仅 7 个 i18n locale，两边 key 并集解决） |
+| `4ba4328bf` | 7Code 默认首页主题（7 语言 homepage 命名空间/WebP 画廊/双模式）+ 首页彩蛋（HomePageTheme/HomePageEasterEggUrl 后台可配置） |
