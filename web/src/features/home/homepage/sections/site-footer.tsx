@@ -55,18 +55,6 @@ export default function SiteFooter() {
 
         <div className='text-center text-xs text-[var(--hp-faint)] sm:text-right'>
           <div>© {currentYear} 7Code AI. All rights reserved.</div>
-          <div className='mt-1'>
-            &copy; {currentYear}{' '}
-            <a
-              href='https://github.com/QuantumNous/new-api'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='transition hover:text-[var(--hp-muted)]'
-            >
-              New API
-            </a>
-            . {t('footer.newapi.projectAttributionSuffix')}
-          </div>
         </div>
       </div>
     </footer>
