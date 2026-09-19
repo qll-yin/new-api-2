@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const BODY = [
-  ['{', 'text-slate-500'],
-  ['  "model": "seedance-1-5-pro",', 'text-slate-100'],
+  ['{', 'text-[var(--hp-code-muted)]'],
+  ['  "model": "seedance-1-5-pro",', 'text-[var(--hp-code-text)]'],
   ['  "prompt": "赛博朋克城市夜景，霓虹雨滴，镜头缓慢推进",', 'text-frost'],
-  ['  "seconds": 8,', 'text-slate-100'],
-  ['  "size": "1280x720"', 'text-slate-100'],
-  ['}', 'text-slate-500'],
+  ['  "seconds": 8,', 'text-[var(--hp-code-text)]'],
+  ['  "size": "1280x720"', 'text-[var(--hp-code-text)]'],
+  ['}', 'text-[var(--hp-code-muted)]'],
 ] as const
 
 /**
@@ -49,7 +49,7 @@ export default function VideosApiCard() {
         <button
           type='button'
           onClick={copy}
-          className='flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-[var(--hp-muted)] transition hover:border-white/25 hover:text-[var(--hp-frost)]'
+          className='flex items-center gap-1 rounded-md border border-[var(--hp-line)] px-2 py-1 text-xs text-[var(--hp-muted)] transition hover:border-[var(--hp-moon)] hover:text-[var(--hp-frost)]'
         >
           {copied ? (
             <Check size={13} className='text-emerald-400' />
@@ -60,11 +60,11 @@ export default function VideosApiCard() {
         </button>
       </div>
 
-      <div className='mt-4 space-y-1 rounded-xl bg-black/40 p-4 font-mono text-[12.5px] leading-relaxed'>
+      <div className='mt-4 space-y-1 rounded-xl bg-[var(--hp-code-bg)] p-4 font-mono text-[12.5px] leading-relaxed'>
         <div>
           <span className='font-bold text-[var(--hp-ice)]'>POST</span>{' '}
-          <span className='text-slate-100'>/v1/videos</span>
-          <span className='ml-2 text-slate-500'>
+          <span className='text-[var(--hp-code-text)]'>/v1/videos</span>
+          <span className='ml-2 text-[var(--hp-code-muted)]'>
             {t('One-line video access')}
           </span>
         </div>

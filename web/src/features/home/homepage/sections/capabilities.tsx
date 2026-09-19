@@ -29,7 +29,7 @@ const CHAT_DEMO_KEYS = [
 function ChatDemo() {
   const { t } = useTranslation('homepage')
   return (
-    <div className='mt-4 h-44 space-y-2.5 overflow-hidden rounded-xl bg-black/30 [mask-image:linear-gradient(to_bottom,transparent,#000_12%,#000_88%,transparent)] p-3.5'>
+    <div className='mt-4 h-44 space-y-2.5 overflow-hidden rounded-xl bg-[var(--hp-panel-bg)] [mask-image:linear-gradient(to_bottom,transparent,#000_12%,#000_88%,transparent)] p-3.5'>
       <div className='space-y-2.5'>
         {CHAT_DEMO_KEYS.map((m) => (
           <div
@@ -40,7 +40,7 @@ function ChatDemo() {
               className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
                 m.role === 'user'
                   ? 'rounded-br-sm bg-gradient-to-r from-[var(--hp-ice)]/40 to-[var(--hp-steel)]/80 text-white'
-                  : 'rounded-bl-sm border border-white/10 bg-white/5 text-slate-200'
+                  : 'rounded-bl-sm border border-[var(--hp-line)] bg-[var(--hp-chip-icon-bg)] text-[var(--hp-text)]'
               }`}
             >
               {t(m.textKey)}
@@ -60,7 +60,7 @@ function AudioDemo() {
     0.65, 0.3,
   ]
   return (
-    <div className='mt-4 flex h-44 flex-col justify-between rounded-xl bg-black/30 p-4'>
+    <div className='mt-4 flex h-44 flex-col justify-between rounded-xl bg-[var(--hp-panel-bg)] p-4'>
       <div className='flex h-14 items-center justify-center gap-1.5'>
         {bars.map((h, i) => (
           <span
@@ -74,10 +74,12 @@ function AudioDemo() {
         ))}
       </div>
       <div className='flex items-center justify-between text-xs'>
-        <span className='truncate text-slate-300'>
+        <span className='truncate text-[var(--hp-text)]'>
           🎵 {t('A jazz tune about code')}
         </span>
-        <span className='ml-3 shrink-0 font-mono text-slate-500'>02:47</span>
+        <span className='ml-3 shrink-0 font-mono text-[var(--hp-faint)]'>
+          02:47
+        </span>
       </div>
     </div>
   )
@@ -227,9 +229,9 @@ export default function Capabilities() {
               </p>
             </div>
           </div>
-          <code className='w-full rounded-xl bg-black/40 px-4 py-3 font-mono text-xs text-[var(--hp-frost)] sm:w-auto'>
+          <code className='w-full rounded-xl bg-[var(--hp-code-bg)] px-4 py-3 font-mono text-xs text-[var(--hp-frost)] sm:w-auto'>
             base_url ={' '}
-            <span className='text-white'>
+            <span className='text-[var(--hp-ice)]'>
               &quot;{homepageSiteConfig.apiBaseUrl}&quot;
             </span>
           </code>

@@ -108,7 +108,7 @@ export default function Hero() {
             </Link>
             <Link
               {...pricingProps}
-              className='hp-glass inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-[var(--hp-muted)] transition hover:border-white/25 hover:text-[var(--hp-frost)]'
+              className='hp-glass inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold text-[var(--hp-muted)] transition hover:border-[var(--hp-ice)]/40 hover:text-[var(--hp-frost)]'
             >
               {t('View pricing')}
             </Link>

@@ -37,7 +37,7 @@ export default function Pricing() {
               className={`hp-glass relative h-full rounded-3xl p-7 transition-transform duration-300 hover:-translate-y-2 ${
                 p.highlight
                   ? 'border-[var(--hp-ice)]/50 shadow-[var(--hp-ice)]/15 shadow-2xl'
-                  : 'hover:border-white/25'
+                  : 'hover:border-[var(--hp-ice)]/40'
               }`}
             >
               {p.highlight && (
@@ -71,7 +71,7 @@ export default function Pricing() {
               {p.disabled ? (
                 <span
                   aria-disabled
-                  className='mt-7 block cursor-not-allowed rounded-full border border-white/10 bg-white/5 py-3 text-center text-sm font-semibold text-[var(--hp-faint)] select-none'
+                  className='mt-7 block cursor-not-allowed rounded-full border border-[var(--hp-line)] bg-[var(--hp-chip-icon-bg)] py-3 text-center text-sm font-semibold text-[var(--hp-faint)] select-none'
                 >
                   {t(p.ctaKey)}
                 </span>
@@ -81,7 +81,7 @@ export default function Pricing() {
                   className={`mt-7 block rounded-full py-3 text-center text-sm font-semibold transition ${
                     p.highlight
                       ? 'hp-shine bg-[var(--hp-royal)] text-white shadow-[var(--hp-royal)]/30 shadow-lg hover:bg-[var(--hp-royal-deep)]'
-                      : 'border border-white/15 text-[var(--hp-muted)] hover:border-white/35 hover:text-[var(--hp-frost)]'
+                      : 'border border-[var(--hp-line)] bg-[var(--hp-chip-icon-bg)] text-[var(--hp-ice)] hover:border-[var(--hp-ice)]/50 hover:text-[var(--hp-frost)]'
                   }`}
                 >
                   {t(p.ctaKey)}

@@ -131,7 +131,9 @@ export function Home() {
     <PublicLayout showMainContainer={false}>
       <HomeEasterEgg url={config.homePageEasterEggUrl} />
       {isSevenCodeTheme ? (
-        <HomepageTheme />
+        <HomepageTheme>
+          <Footer />
+        </HomepageTheme>
       ) : (
         <>
           <Hero isAuthenticated={isAuthenticated} />

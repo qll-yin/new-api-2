@@ -22,15 +22,16 @@ function BrandChip({ name, icon, tag }: (typeof models.models)[number]) {
 export default function BrandMarquee() {
   const { t } = useTranslation('homepage')
   const half = Math.ceil(models.models.length / 2)
-  // 跑马灯需要首尾相接：每个条目复制一份，copy 作为唯一 key 的一部分
-  const row1 = models.models.slice(0, half).flatMap((m) => [
-    { ...m, key: `${m.name}-0` },
-    { ...m, key: `${m.name}-1` },
-  ])
-  const row2 = models.models.slice(half).flatMap((m) => [
-    { ...m, key: `${m.name}-0` },
-    { ...m, key: `${m.name}-1` },
-  ])
+  // 跑马灯需要首尾相接：整组条目复制一份（组内不复读，避免相邻出现两个同款），
+  // key 由数据 + 副本号唯一确定，动画位移 -50% 恰好等于一组宽度，无缝循环
+  const row1 = [
+    ...models.models.slice(0, half).map((m) => ({ ...m, key: `${m.name}-a` })),
+    ...models.models.slice(0, half).map((m) => ({ ...m, key: `${m.name}-b` })),
+  ]
+  const row2 = [
+    ...models.models.slice(half).map((m) => ({ ...m, key: `${m.name}-a` })),
+    ...models.models.slice(half).map((m) => ({ ...m, key: `${m.name}-b` })),
+  ]
 
   return (
     <section id='homepage-models' className='relative py-20'>

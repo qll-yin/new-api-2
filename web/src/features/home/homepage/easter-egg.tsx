@@ -10,7 +10,7 @@ const CLICK_WINDOW_MS = 2500
 /** 触发彩蛋需要的连续点击次数 */
 const REQUIRED_CLICKS = 5
 /** 弹窗展示到自动跳转的延迟 */
-const JUMP_DELAY_MS = 1200
+const JUMP_DELAY_MS = 6000
 
 /**
  * 首页彩蛋：快速连续点击 5 次后弹窗提示，并在新标签页打开配置的 URL。
@@ -37,8 +37,8 @@ export function HomeEasterEgg({ url }: { url: string }) {
   const openEgg = useCallback(() => {
     setOpen(true)
     setBlocked(false)
-    // 延迟跳转：浏览器用户激活窗口一般 ≥ 5s，1.2s 内调用不被拦截；
-    // 万一被拦截，卡片自动降级为手动按钮
+    // 延迟跳转：等待期结束时浏览器瞬时用户激活可能已过期，window.open 若被
+    // 弹窗拦截，卡片自动降级为「立即前往」手动按钮（点击时激活必然有效）
     jumpTimer.current = setTimeout(() => {
       const win = window.open(urlRef.current, '_blank', 'noopener,noreferrer')
       if (!win) setBlocked(true)
@@ -105,16 +105,16 @@ export function HomeEasterEgg({ url }: { url: string }) {
             animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
             exit={{ opacity: 0, scale: 0.9, y: 12, filter: 'blur(4px)' }}
             transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-            className='relative mx-4 flex max-w-sm flex-col items-center gap-4 rounded-2xl bg-white/10 p-8 text-center shadow-2xl ring-1 ring-white/20 backdrop-blur-xl'
+            className='relative mx-4 flex max-w-md flex-col items-center gap-5 rounded-3xl bg-white/10 p-10 text-center shadow-2xl ring-1 ring-white/20 backdrop-blur-xl'
             onClick={(e) => e.stopPropagation()}
           >
-            <span className='relative flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-blue-600 text-white shadow-lg shadow-indigo-500/40'>
-              <PartyPopper size={26} />
+            <span className='relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-blue-600 text-white shadow-lg shadow-indigo-500/40'>
+              <PartyPopper size={30} />
               <span className='absolute inset-0 -z-10 animate-ping rounded-2xl bg-indigo-400/50' />
             </span>
 
-            <div className='space-y-1.5'>
-              <div className='text-lg font-semibold text-white'>
+            <div className='space-y-2'>
+              <div className='text-xl font-semibold text-white'>
                 🎉 {t('Congratulations, you found the secret page')}
               </div>
               <div className='text-sm text-white/80'>

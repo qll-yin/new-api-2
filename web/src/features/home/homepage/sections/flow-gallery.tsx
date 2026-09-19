@@ -8,7 +8,7 @@ function GalleryCard({ src, label, typeKey, ratio }: GalleryItem) {
   const isVideo = typeKey === 'video'
   return (
     <div
-      className={`hp-shine group relative mx-3 w-64 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[var(--hp-card)] ${ratio} transition-all duration-500 hover:-translate-y-2 hover:border-[var(--hp-ice)]/50 hover:shadow-[var(--hp-ice)]/20 hover:shadow-2xl`}
+      className={`hp-shine group relative mx-3 w-64 shrink-0 overflow-hidden rounded-2xl border border-[var(--hp-line)] bg-[var(--hp-card)] ${ratio} transition-all duration-500 hover:-translate-y-2 hover:border-[var(--hp-ice)]/50 hover:shadow-[var(--hp-ice)]/20 hover:shadow-2xl`}
     >
       <img
         src={src}
@@ -39,15 +39,18 @@ function GalleryCard({ src, label, typeKey, ratio }: GalleryItem) {
 
 export default function FlowGallery() {
   const { t } = useTranslation('homepage')
-  // 跑马灯需要首尾相接：每个条目复制一份，key 由数据 + 副本号唯一确定
-  const row1 = galleryItems.slice(0, 5).flatMap((it) => [
-    { ...it, key: `${it.label}-0` },
-    { ...it, key: `${it.label}-1` },
-  ])
-  const row2 = galleryItems.slice(5).flatMap((it) => [
-    { ...it, key: `${it.label}-0` },
-    { ...it, key: `${it.label}-1` },
-  ])
+  // 跑马灯需要首尾相接：整组条目复制一份（组内不复读，避免相邻出现两个同款），
+  // key 由数据 + 副本号唯一确定，动画位移 -50% 恰好等于一组宽度，无缝循环。
+  // 两行都放全部作品（第二行轮转半组排序），保证同图在屏内的重复间距大于视口宽度
+  const all = [...galleryItems.slice(5), ...galleryItems.slice(0, 5)]
+  const row1 = [
+    ...galleryItems.map((it) => ({ ...it, key: `${it.label}-a` })),
+    ...galleryItems.map((it) => ({ ...it, key: `${it.label}-b` })),
+  ]
+  const row2 = [
+    ...all.map((it) => ({ ...it, key: `${it.label}-a` })),
+    ...all.map((it) => ({ ...it, key: `${it.label}-b` })),
+  ]
 
   return (
     <section id='homepage-gallery' className='relative overflow-hidden py-20'>

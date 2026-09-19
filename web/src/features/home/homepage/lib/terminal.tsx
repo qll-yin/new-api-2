@@ -94,17 +94,19 @@ export default function Terminal({ baseUrl }: { baseUrl: string }) {
 
   const colorOf = (kind: Line['kind']) => {
     if (kind === 'cmd') return 'text-[var(--hp-frost)]'
-    if (kind === 'ok') return 'text-emerald-300'
-    return 'text-slate-400'
+    if (kind === 'ok') return 'text-[var(--hp-ok)]'
+    return 'text-[var(--hp-code-muted)]'
   }
 
   return (
     <div className='hp-glass hp-glow-border overflow-hidden rounded-2xl shadow-2xl shadow-black/50'>
-      <div className='flex items-center gap-2 border-b border-white/5 px-4 py-3'>
+      <div className='flex items-center gap-2 border-b border-[var(--hp-line)] px-4 py-3'>
         <span className='h-3 w-3 rounded-full bg-red-400/80' />
         <span className='h-3 w-3 rounded-full bg-amber-300/80' />
         <span className='h-3 w-3 rounded-full bg-emerald-400/80' />
-        <span className='ml-3 font-mono text-xs text-slate-400'>terminal</span>
+        <span className='ml-3 font-mono text-xs text-[var(--hp-faint)]'>
+          terminal
+        </span>
       </div>
       <div className='h-[19rem] space-y-1.5 overflow-hidden p-5 font-mono text-[13px] leading-relaxed'>
         {lines.map((l) => (
