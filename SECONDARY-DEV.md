@@ -185,6 +185,50 @@
 - 资源：`web/public/images/homepage/`（画廊 11 张 WebP，原图 16MB → 1.3MB）、`web/public/videos/homepage/video-1.mp4`（2.8MB，能力卡悬停播放；`site.ts` 的 `videos.demoUrl` 可改为外链）。
 - 旧 classic 首页组件（`web/src/features/home/components/`）**保留未动**，仅不再默认渲染。
 
+## 9. 首页顶部活动通知栏
+
+### 需求
+首页最顶部一条高 35px 的滚动通知栏，用于活动期展示。**独立于系统公告/公告弹窗**，后台单独开关 + 内容配置。
+
+### 行为口径
+- 通知栏 `fixed` 固定在视口最顶部（z-60，压过公共头部 z-50），开启时公共头部整体下移 35px（`top-[35px]`）、移动端全屏抽屉顶部内边距加到 115px、首页主题内容前置 35px 占位。
+- 仅在首页路径 `/` 展示（含管理员配置了自定义首页内容的情况）；经典与 7code 主题都生效。
+- 内容**每行一条**，多条以分隔符相连成一条无缝跑马灯（两份拷贝 + translateX(-50%)，与首页模型跑马灯同款手法）；滚动时长随内容长度自适应（12s–60s）；`prefers-reduced-motion` 停止滚动。
+- 内容为纯文本渲染（React 转义），无 XSS 面。
+
+### 后端（无 schema 变更）
+- `setting/console_setting/config.go`：`TopNoticeBarEnabled`（默认 false）/ `TopNoticeBarText`（默认空）。
+- `setting/console_setting/validation.go`：`ValidateConsoleSettings` 增加 `TopNoticeBarText` 用例（≤2000 字符）。
+- `controller/option.go`：保存时校验 `console_setting.top_notice_bar_text`；`controller/misc.go`：`/api/status` 下发 `top_notice_bar_enabled` / `top_notice_bar_text`。
+
+### 前端
+- 组件 `web/src/components/layout/components/top-notice-bar.tsx`，由 `PublicHeader` 统一渲染（自己算可见性：`pathname === '/' && enabled && text 非空`），动画 keyframes 在 `web/src/styles/index.css`（`.top-notice-marquee*`）。
+- 首页占位：`web/src/features/home/index.tsx` 在主题分支前渲染 `h-[35px]` 占位（自定义内容分支不占位，通知栏覆盖其顶部，与 fixed 头部行为一致）。
+- 状态链路：`status-query.ts` / `system-config-store.ts` 新增 `topNoticeBarEnabled` / `topNoticeBarText`；`use-update-option.ts` 的 `STATUS_RELATED_KEYS` 收录两个 key（保存后失效 status 缓存）。
+- 后台设置：站点与品牌 → 新分区「顶部通知栏」（`maintenance/top-notice-bar-section.tsx`：开关 + 多行 Textarea）。
+
+## 10. 顶部导航自定义链接（含角标 tag）
+
+### 需求
+在"站点与品牌 → 顶部导航"分区内新增自定义导航：管理员可添加多条（名称 + URL + 可选角标 tag），例如跳转自己开发的画布应用；tag 在导航文字右上角显示发光圆角徽标（如 NEW / 最新）。
+
+### 行为口径
+- 追加在内置导航（Home/Console/模型广场/排行榜/文档/关于）之后，最多 10 条。
+- URL 以 `/` 开头按站内路由用 `<Link>` 打开，其余按外链 `<a target='_blank' rel='noopener noreferrer'>`；tag≤10 字符、名称≤30 字符、URL≤500 字符，`javascript:` 等危险内容被后端校验拦截。
+- 角标样式：primary 底色圆角小徽标 + `animate-pulse` + primary 色辉光阴影，desktop（文字右侧 -top-1.5 -right-3）与 mobile 抽屉（文字右上 left-full）各自定位。
+- 已登录用户与游客同样可见（公共头部导航）。
+
+### 后端（无 schema 变更）
+- `setting/console_setting/config.go`：`CustomNavLinks`（JSON 数组字符串，默认空）。
+- `setting/console_setting/validation.go`：`CustomNavLink` 结构体 + `validateCustomNavLinks`（≤10 条、字段长度、URL 正则或 `/` 前缀、危险内容）+ `GetCustomNavLinks()`（去空白、跳过空条目）。
+- `controller/option.go`：保存时校验 `console_setting.custom_nav_links`；`controller/misc.go`：`/api/status` 下发 `custom_nav_links`（解析后的数组）。
+
+### 前端
+- `system-config-store.ts`：`CustomNavConfigLink` 类型 + `parseCustomNavLinks`（status 链路共用）；`use-top-nav-links.ts` 合并自定义导航进返回数组（`TopNavLink` 增加 `tag?`，`components/layout/types.ts` 同步）。
+- `public-header.tsx`：desktop/mobile 两处渲染 `navTag()` 角标（外层改 flex、截断移到内层 span，避免 overflow 裁掉角标）。
+- 后台设置：`maintenance/custom-nav-links-section.tsx`（表格 + 弹窗编辑器），内嵌在「顶部导航」分区（`site/section-registry.tsx` 组合渲染），保存 key 为 `console_setting.custom_nav_links`。
+- i18n：7 语言各 22 个新 flat key（`homepage` 嵌套命名空间不受影响）。
+
 ---
 
 ## 与上游同步（merge）注意事项
@@ -196,7 +240,9 @@
    - `web/src/hooks/use-notifications.ts`、`web/src/components/layout/components/authenticated-layout.tsx`（上游若重写消息中心/布局，需核对 `getAnnouncementKey` 导出与弹窗挂载点）
    - `router/api-router.go`（上游也常改路由表，核对 adminRoute 下 `/promotion/records` 仍在）
    - `web/src/i18n/locales/*.json`（合并策略：取上游版 → 脚本回填我们的键 → `bun run i18n:sync`；注意 `homepage` 命名空间是我们整块新增，冲突时整体保留我方）
-   - `controller/misc.go`（status 下发字段：`home_page_theme` / `home_page_easter_egg_url` 与上游新字段共存即可）
+   - `controller/misc.go`（status 下发字段：`home_page_theme` / `home_page_easter_egg_url`、`top_notice_bar_*` / `custom_nav_links` 与上游新字段共存即可；上游也常改此文件）
+   - `setting/console_setting/`、`controller/option.go`（通知栏/自定义导航三个配置的校验用例，上游若改 `ValidateConsoleSettings` 分发结构需人工合并）
+   - `web/src/hooks/use-top-nav-links.ts`、`web/src/components/layout/components/public-header.tsx`（自定义导航合并、角标渲染与通知栏头部偏移；上游若重构公共头部需保留 `navTag` / `TopNoticeBar` 挂载）
    - `web/src/features/home/index.tsx`（上游若改默认首页结构，需保留 classic/7code 分支与彩蛋挂载）
    - `web/src/stores/system-config-store.ts`、`web/src/lib/status-query.ts`（上游加 status 字段时保留我方两字段映射）
    - `web/src/features/system-settings/general/system-info-section.tsx`（上游若改站点设置表单，需回填主题下拉与彩蛋 URL 两字段）
@@ -230,3 +276,9 @@
 | `9e420be3c` | docs: SECONDARY-DEV 补录公告弹窗与推广分成管理员视图 |
 | `2f18e6dec` | 合并上游 main（65 提交，冲突仅 7 个 i18n locale，两边 key 并集解决） |
 | `4ba4328bf` | 7Code 默认首页主题（7 语言 homepage 命名空间/WebP 画廊/双模式）+ 首页彩蛋（HomePageTheme/HomePageEasterEggUrl 后台可配置） |
+| `899f50519` | docs: SECONDARY-DEV 补录默认首页双主题与首页彩蛋 |
+| `75241af63` | 7Code 主题浅色适配修复（语义变量）+ 跑马灯防复读 + 补页脚 + 彩蛋调优（6s 延迟/弹窗加大） |
+| `67f474f21` | 7Code 主题页脚改用主题自带样式（site-footer.tsx，保留 New API 署名行） |
+| `8f52c16dc` | （用户自改）移除部分 footer 内容 |
+| `dc773bf0a` | 合并上游 main v1.0.0-rc.38（9 提交，零冲突；GitHub OAuth 旧绑定登录名用户需重新验证） |
+| `bdda11d3a` | 首页顶部活动通知栏（35px 跑马灯）+ 顶部导航自定义链接与发光角标（console_setting 三配置，后台可开关） |
