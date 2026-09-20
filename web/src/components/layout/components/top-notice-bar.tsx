@@ -42,7 +42,7 @@ export function TopNoticeBar({ text }: { text: string }) {
 
   const strip = items.join(NOTICE_SEPARATOR) + NOTICE_SEPARATOR
   // 滚动时长随内容长度增长，限制在合理区间以保证可读速度
-  const duration = Math.min(60, Math.max(12, Math.round(strip.length * 0.35)))
+  const duration = Math.min(60, Math.max(12, Math.round(strip.length * 0.85)))
 
   // 无缝循环要求滚动内容恰好等分为两组；文案较短时单份宽度铺不满容器，
   // 电脑端会出现"只显示一部分"的情况，因此按容器宽度自适应拷贝份数。
