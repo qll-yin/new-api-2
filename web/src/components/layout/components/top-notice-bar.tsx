@@ -16,10 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Megaphone } from 'lucide-react'
 
-// 条目分隔符：两份文案首尾相接时同样以它收尾，保证无缝循环
+// 条目分隔符：拷贝组首尾相接时同样以它收尾，保证无缝循环
 const NOTICE_SEPARATOR = '\u00A0\u00A0✦\u00A0\u00A0'
 
 /**
@@ -36,26 +36,63 @@ export function TopNoticeBar({ text }: { text: string }) {
         .filter(Boolean),
     [text]
   )
-
-  if (items.length === 0) return null
+  const containerRef = useRef<HTMLDivElement>(null)
+  const stripRef = useRef<HTMLSpanElement>(null)
+  const [copiesPerGroup, setCopiesPerGroup] = useState(2)
 
   const strip = items.join(NOTICE_SEPARATOR) + NOTICE_SEPARATOR
   // 滚动时长随内容长度增长，限制在合理区间以保证可读速度
   const duration = Math.min(60, Math.max(12, Math.round(strip.length * 0.35)))
 
+  // 无缝循环要求滚动内容恰好等分为两组；文案较短时单份宽度铺不满容器，
+  // 电脑端会出现"只显示一部分"的情况，因此按容器宽度自适应拷贝份数。
+  useEffect(() => {
+    const container = containerRef.current
+    const stripEl = stripRef.current
+    if (!container || !stripEl) return
+    const update = () => {
+      const stripWidth = stripEl.getBoundingClientRect().width
+      if (stripWidth <= 0) return
+      setCopiesPerGroup(
+        Math.max(1, Math.ceil(container.clientWidth / stripWidth))
+      )
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [strip])
+
+  if (items.length === 0) return null
+
+  const stripSpan = (keyPrefix: string, hidden = false) =>
+    Array.from({ length: hidden ? copiesPerGroup : copiesPerGroup - 1 }, (_, i) => (
+      <span
+        key={`${keyPrefix}${i}`}
+        aria-hidden={hidden || undefined}
+        className='text-xs whitespace-pre'
+      >
+        {strip}
+      </span>
+    ))
+
   return (
     <div className='bg-primary text-primary-foreground fixed inset-x-0 top-0 z-[60] h-[35px] overflow-hidden border-b border-white/10 shadow-sm'>
       <div className='mx-auto flex h-full max-w-7xl items-center gap-2.5 px-4'>
         <Megaphone className='size-3.5 shrink-0' aria-hidden='true' />
-        <div className='top-notice-marquee-mask relative min-w-0 flex-1 overflow-hidden'>
+        <div
+          ref={containerRef}
+          className='top-notice-marquee-mask relative min-w-0 flex-1 overflow-hidden'
+        >
           <div
             className='top-notice-marquee flex w-max items-center'
             style={{ animationDuration: `${duration}s` }}
           >
-            <span className='text-xs whitespace-pre'>{strip}</span>
-            <span aria-hidden='true' className='text-xs whitespace-pre'>
+            <span ref={stripRef} className='text-xs whitespace-pre'>
               {strip}
             </span>
+            {stripSpan('a-')}
+            {stripSpan('b-', true)}
           </div>
         </div>
       </div>
