@@ -232,10 +232,10 @@
 ## 11. SEO 第一阶段基础整改
 
 ### 需求
-推广前补齐搜索引擎基础：双语 meta/分享卡、canonical、robots/sitemap、每页独立标题、html lang 同步。对外主域名 `https://ai.7code.cc`（集中在 `web/src/lib/constants.ts` 的 `SITE_URL`，域名变更需同步 index.html / robots.txt / sitemap.xml 三处静态文件）。
+推广前补齐搜索引擎基础：meta/分享卡、canonical、robots/sitemap、每页独立标题、html lang 同步。**主推海外，静态 SEO 文案全英文**（title/description/keywords/OG/Twitter 均 en，`html lang="en"`；运行时界面切语言仍会同步 `<html lang>`）。对外主域名 `https://ai.7code.cc`（集中在 `web/src/lib/constants.ts` 的 `SITE_URL`，域名变更需同步 index.html / robots.txt / sitemap.xml 三处静态文件）。
 
 ### 实现（纯前端，无后端改动）
-- `web/index.html`：中英双语 description/keywords（中文在前，英文竖线接续）、OG + Twitter 分享卡（og:image 暂用 /logo.png，后续可换 1200×630 专用图）、`<link rel="canonical">`、`html lang="zh-CN"`。运行时 `initSystemBranding()` 仍会把 title/meta[name=title] 覆盖为后台系统名。
+- `web/index.html`：英文 description/keywords、OG + Twitter 分享卡（og:image 暂用 /logo.png，后续可换 1200×630 专用图；`og:locale=en_US` + `alternate zh_CN`）、`<link rel="canonical">`。运行时 `initSystemBranding()` 仍会把 title/meta[name=title] 覆盖为后台系统名。
 - `web/public/robots.txt` + `sitemap.xml`：embed 后由后端 `static.Serve` 伺服；Disallow `/dashboard`、`/system-settings`、`/wallet`、`/api/`；sitemap 含 `/`、`/pricing`、`/rankings`、`/about`。
 - `web/src/hooks/use-document-title.ts`：公开内容页（Pricing/Rankings/About 已接）设 `「页面名 · 系统名」` 标题 + 按路径更新 canonical，卸载还原；页面标题文案走 t()，随界面语言变化。
 - `web/src/i18n/config.ts`：初始化与 `languageChanged` 时把 `document.documentElement.lang` 同步为 BCP-47 标签（经 `toIntlLocale`）。
