@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /system-settings
+Disallow: /wallet
+Disallow: /api/
+
+Sitemap: https://ai.7code.cc/sitemap.xml

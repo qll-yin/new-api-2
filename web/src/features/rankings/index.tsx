@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useDocumentTitle } from '@/hooks/use-document-title'
 
 import {
   MarketShareSection,
@@ -36,6 +37,7 @@ const VALID_PERIODS: RankingPeriod[] = ['today', 'week', 'month', 'year']
 
 export function Rankings() {
   const { t } = useTranslation()
+  useDocumentTitle(t('Rankings'))
   const search = useSearch({ from: '/rankings/' })
   const navigate = useNavigate()
 

@@ -24,6 +24,12 @@ For commercial licensing, please contact support@quantumnous.com
 export const DEFAULT_SYSTEM_NAME = 'New API'
 export const DEFAULT_LOGO = '/logo.png'
 
+/**
+ * 站点对外主域名（SEO canonical / sitemap / 分享卡链接的基址）。
+ * 二开定制：域名变更时改这里并同步 web/public/robots.txt、sitemap.xml 与 index.html。
+ */
+export const SITE_URL = 'https://ai.7code.cc'
+
 // LocalStorage Keys
 export const STORAGE_KEYS = {
   SYSTEM_NAME: 'system_name',

@@ -20,7 +20,7 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
-import { convertDetectedLanguage } from './languages'
+import { convertDetectedLanguage, toIntlLocale } from './languages'
 import en from './locales/en.json'
 import fr from './locales/fr.json'
 import ja from './locales/ja.json'
@@ -60,5 +60,14 @@ i18n
       convertDetectedLanguage,
     },
   })
+
+// SEO：让 <html lang> 跟随界面语言（搜索引擎以 lang 属性识别页面语言）。
+// 初始一次 + 每次切换语言时同步；值经 toIntlLocale 转成合法 BCP-47 标签。
+const syncDocumentLang = () => {
+  const locale = toIntlLocale(i18n.resolvedLanguage ?? i18n.language)
+  if (locale) document.documentElement.lang = locale
+}
+syncDocumentLang()
+i18n.on('languageChanged', syncDocumentLang)
 
 export default i18n
