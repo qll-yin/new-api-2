@@ -229,6 +229,18 @@
 - 后台设置：`maintenance/custom-nav-links-section.tsx`（表格 + 弹窗编辑器），内嵌在「顶部导航」分区（`site/section-registry.tsx` 组合渲染），保存 key 为 `console_setting.custom_nav_links`。
 - i18n：7 语言各 22 个新 flat key（`homepage` 嵌套命名空间不受影响）。
 
+## 11. SEO 第一阶段基础整改
+
+### 需求
+推广前补齐搜索引擎基础：双语 meta/分享卡、canonical、robots/sitemap、每页独立标题、html lang 同步。对外主域名 `https://ai.7code.cc`（集中在 `web/src/lib/constants.ts` 的 `SITE_URL`，域名变更需同步 index.html / robots.txt / sitemap.xml 三处静态文件）。
+
+### 实现（纯前端，无后端改动）
+- `web/index.html`：中英双语 description/keywords（中文在前，英文竖线接续）、OG + Twitter 分享卡（og:image 暂用 /logo.png，后续可换 1200×630 专用图）、`<link rel="canonical">`、`html lang="zh-CN"`。运行时 `initSystemBranding()` 仍会把 title/meta[name=title] 覆盖为后台系统名。
+- `web/public/robots.txt` + `sitemap.xml`：embed 后由后端 `static.Serve` 伺服；Disallow `/dashboard`、`/system-settings`、`/wallet`、`/api/`；sitemap 含 `/`、`/pricing`、`/rankings`、`/about`。
+- `web/src/hooks/use-document-title.ts`：公开内容页（Pricing/Rankings/About 已接）设 `「页面名 · 系统名」` 标题 + 按路径更新 canonical，卸载还原；页面标题文案走 t()，随界面语言变化。
+- `web/src/i18n/config.ts`：初始化与 `languageChanged` 时把 `document.documentElement.lang` 同步为 BCP-47 标签（经 `toIntlLocale`）。
+- 遗留（第二阶段再做）：JSON-LD 结构化数据、FAQ 富摘要、brotli、预渲染/SSG、llms.txt（GEO）。
+
 ---
 
 ## 与上游同步（merge）注意事项
@@ -282,3 +294,5 @@
 | `8f52c16dc` | （用户自改）移除部分 footer 内容 |
 | `dc773bf0a` | 合并上游 main v1.0.0-rc.38（9 提交，零冲突；GitHub OAuth 旧绑定登录名用户需重新验证） |
 | `bdda11d3a` | 首页顶部活动通知栏（35px 跑马灯）+ 顶部导航自定义链接与发光角标（console_setting 三配置，后台可开关） |
+| `42d963258` | 修通知栏：文案较短时电脑端铺不满容器，按容器宽度自适应拷贝份数 |
+| `47f0e1639` | SEO 第一阶段：双语 meta/OG/Twitter 卡、canonical、robots/sitemap、每页独立标题、html lang 同步 |
