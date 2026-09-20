@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
+import { parseCustomNavLinks } from '@/stores/system-config-store'
 import { useAuthStore } from '@/stores/auth-store'
 
 export type TopNavLink = {
@@ -29,6 +30,8 @@ export type TopNavLink = {
   disabled?: boolean
   requiresAuth?: boolean
   external?: boolean
+  /** 导航文字右上角的角标（如 NEW / 最新），来自管理员自定义导航配置 */
+  tag?: string
 }
 
 /**
@@ -98,6 +101,19 @@ export function useTopNavLinks(): TopNavLink[] {
   // About
   if (modules?.about !== false) {
     links.push({ title: t('About'), href: '/about' })
+  }
+
+  // 自定义导航（管理员在系统设置中配置，可带角标 tag；
+  // URL 以 "/" 开头视为站内路由，其余按外链新窗口打开）
+  for (const custom of parseCustomNavLinks(
+    (status as Record<string, unknown> | null)?.custom_nav_links
+  )) {
+    links.push({
+      title: custom.title,
+      href: custom.url,
+      external: !custom.url.startsWith('/'),
+      tag: custom.tag,
+    })
   }
 
   return links

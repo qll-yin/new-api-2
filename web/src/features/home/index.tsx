@@ -127,8 +127,13 @@ export function Home() {
   // 无自定义内容：按后台「默认首页主题」渲染 classic / 7code 两套主题
   const isSevenCodeTheme = config.homePageTheme === '7code'
 
+  // 首页顶部活动通知栏开启时，给主题内容留出 35px 占位（通知栏本体由 PublicHeader 渲染）
+  const noticeBarActive =
+    config.topNoticeBarEnabled && config.topNoticeBarText.trim().length > 0
+
   return (
     <PublicLayout showMainContainer={false}>
+      {noticeBarActive && <div aria-hidden='true' className='h-[35px]' />}
       <HomeEasterEgg url={config.homePageEasterEggUrl} />
       {isSevenCodeTheme ? (
         <HomepageTheme />

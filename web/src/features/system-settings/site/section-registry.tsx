@@ -26,6 +26,8 @@ import {
 import { HeaderNavigationSection } from '../maintenance/header-navigation-section'
 import { NoticeSection } from '../maintenance/notice-section'
 import { SidebarModulesSection } from '../maintenance/sidebar-modules-section'
+import { TopNoticeBarSection } from '../maintenance/top-notice-bar-section'
+import { CustomNavLinksSection } from '../maintenance/custom-nav-links-section'
 import type { SiteSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 
@@ -61,16 +63,31 @@ const SITE_SECTIONS = [
     ),
   },
   {
+    id: 'top-notice-bar',
+    titleKey: 'Top notice bar',
+    build: (settings: SiteSettings) => (
+      <TopNoticeBarSection
+        enabled={Boolean(settings['console_setting.top_notice_bar_enabled'])}
+        text={settings['console_setting.top_notice_bar_text'] ?? ''}
+      />
+    ),
+  },
+  {
     id: 'header-navigation',
     titleKey: 'Header navigation',
     build: (settings: SiteSettings) => {
       const headerNavConfig = parseHeaderNavModules(settings.HeaderNavModules)
       const headerNavSerialized = serializeHeaderNavModules(headerNavConfig)
       return (
-        <HeaderNavigationSection
-          config={headerNavConfig}
-          initialSerialized={headerNavSerialized}
-        />
+        <div className='space-y-10'>
+          <HeaderNavigationSection
+            config={headerNavConfig}
+            initialSerialized={headerNavSerialized}
+          />
+          <CustomNavLinksSection
+            data={settings['console_setting.custom_nav_links'] ?? ''}
+          />
+        </div>
       )
     },
   },

@@ -39,6 +39,9 @@ const defaultSiteSettings: SiteSettings = {
   'legal.privacy_policy': '',
   HeaderNavModules: '',
   SidebarModulesAdmin: '',
+  'console_setting.top_notice_bar_enabled': false,
+  'console_setting.top_notice_bar_text': '',
+  'console_setting.custom_nav_links': '',
 }
 
 export function SiteSettings() {

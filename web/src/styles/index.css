@@ -730,3 +730,41 @@ For commercial licensing, please contact support@quantumnous.com
     display: none;
   }
 }
+
+/* 首页顶部活动通知栏：无缝横向滚动跑马灯 */
+.top-notice-marquee {
+  animation: notice-marquee-scroll 24s linear infinite;
+}
+
+@keyframes notice-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* 两端渐隐遮罩，文字滚出边界时自然淡出 */
+.top-notice-marquee-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 1.5rem,
+    black calc(100% - 1.5rem),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 1.5rem,
+    black calc(100% - 1.5rem),
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-notice-marquee {
+    animation: none;
+  }
+}

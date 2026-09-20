@@ -79,6 +79,13 @@ func ValidateConsoleSettings(settingsStr string, settingType string) error {
 		return validateFAQ(settingsStr)
 	case "UptimeKumaGroups":
 		return validateUptimeKumaGroups(settingsStr)
+	case "CustomNavLinks":
+		return validateCustomNavLinks(settingsStr)
+	case "TopNoticeBarText":
+		if exceedsMaxCharacters(settingsStr, 2000) {
+			return fmt.Errorf("通知栏内容长度不能超过2000字符")
+		}
+		return nil
 	default:
 		return fmt.Errorf("未知的设置类型：%s", settingType)
 	}
@@ -307,4 +314,80 @@ func validateUptimeKumaGroups(groupsStr string) error {
 
 func GetUptimeKumaGroups() []map[string]interface{} {
 	return getJSONList(GetConsoleSetting().UptimeKumaGroups)
+}
+
+// CustomNavLink 顶部导航自定义链接（管理员在系统设置中配置）。
+// URL 以 "/" 开头视为站内路由，其余按外链处理（前端新窗口打开）。
+type CustomNavLink struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+	Tag   string `json:"tag,omitempty"`
+}
+
+func validateCustomNavLinks(linksStr string) error {
+	list, err := parseJSONArray(linksStr, "自定义导航")
+	if err != nil {
+		return err
+	}
+	if len(list) > 10 {
+		return fmt.Errorf("自定义导航数量不能超过10个")
+	}
+	for i, link := range list {
+		title, ok := link["title"].(string)
+		if !ok || strings.TrimSpace(title) == "" {
+			return fmt.Errorf("第%d个自定义导航缺少名称字段", i+1)
+		}
+		urlStr, ok := link["url"].(string)
+		if !ok || strings.TrimSpace(urlStr) == "" {
+			return fmt.Errorf("第%d个自定义导航缺少URL字段", i+1)
+		}
+		if !strings.HasPrefix(urlStr, "/") {
+			if err := validateURL(urlStr, i+1, "自定义导航"); err != nil {
+				return err
+			}
+		}
+		if exceedsMaxCharacters(title, 30) {
+			return fmt.Errorf("第%d个自定义导航的名称长度不能超过30字符", i+1)
+		}
+		if exceedsMaxCharacters(urlStr, 500) {
+			return fmt.Errorf("第%d个自定义导航的URL长度不能超过500字符", i+1)
+		}
+		if err := checkDangerousContent(title, i+1, "自定义导航"); err != nil {
+			return err
+		}
+		if err := checkDangerousContent(urlStr, i+1, "自定义导航"); err != nil {
+			return err
+		}
+		if tag, exists := link["tag"]; exists {
+			if tagStr, ok := tag.(string); ok {
+				if exceedsMaxCharacters(tagStr, 10) {
+					return fmt.Errorf("第%d个自定义导航的角标长度不能超过10字符", i+1)
+				}
+				if err := checkDangerousContent(tagStr, i+1, "自定义导航"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func GetCustomNavLinks() []CustomNavLink {
+	linksStr := GetConsoleSetting().CustomNavLinks
+	if linksStr == "" {
+		return []CustomNavLink{}
+	}
+	var list []CustomNavLink
+	_ = common.UnmarshalJsonStr(linksStr, &list)
+	result := make([]CustomNavLink, 0, len(list))
+	for _, link := range list {
+		link.Title = strings.TrimSpace(link.Title)
+		link.URL = strings.TrimSpace(link.URL)
+		link.Tag = strings.TrimSpace(link.Tag)
+		if link.Title == "" || link.URL == "" {
+			continue
+		}
+		result = append(result, link)
+	}
+	return result
 }

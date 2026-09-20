@@ -22,6 +22,7 @@ import { getStatus } from '@/lib/api'
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
 import {
   useSystemConfigStore,
+  parseCustomNavLinks,
   type CurrencyConfig,
   type CurrencyDisplayType,
   type SystemConfig,
@@ -97,6 +98,9 @@ export function mapStatusDataToConfig(
     homePageTheme: (data.home_page_theme as string | undefined) || 'classic',
     homePageEasterEggUrl:
       (data.home_page_easter_egg_url as string | undefined) || '',
+    topNoticeBarEnabled: data.top_notice_bar_enabled === true,
+    topNoticeBarText: (data.top_notice_bar_text as string | undefined) || '',
+    customNavLinks: parseCustomNavLinks(data.custom_nav_links),
     footerHtml: data.footer_html as string | undefined,
     demoSiteEnabled: data.demo_site_enabled as boolean | undefined,
     displayTokenStatEnabled: data.display_token_stat_enabled as

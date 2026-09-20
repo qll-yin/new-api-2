@@ -38,6 +38,32 @@ export interface CurrencyConfig {
   customCurrencyExchangeRate: number
 }
 
+export const MAX_CUSTOM_NAV_LINKS = 10
+
+/** 顶部导航自定义链接（管理员在系统设置中配置，可带角标 tag）。 */
+export interface CustomNavConfigLink {
+  title: string
+  url: string
+  tag?: string
+}
+
+/** Parse the `custom_nav_links` status payload, dropping unusable entries. */
+export function parseCustomNavLinks(value: unknown): CustomNavConfigLink[] {
+  if (!Array.isArray(value)) return []
+  const result: CustomNavConfigLink[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const record = item as Record<string, unknown>
+    const title = typeof record.title === 'string' ? record.title.trim() : ''
+    const url = typeof record.url === 'string' ? record.url.trim() : ''
+    if (!title || !url) continue
+    const tag = typeof record.tag === 'string' ? record.tag.trim() : ''
+    result.push(tag ? { title, url, tag } : { title, url })
+    if (result.length >= MAX_CUSTOM_NAV_LINKS) break
+  }
+  return result
+}
+
 export interface SystemConfig {
   systemName: string
   logo: string
@@ -48,6 +74,12 @@ export interface SystemConfig {
   homePageTheme: string
   /** 首页彩蛋跳转地址（留空关闭） */
   homePageEasterEggUrl: string
+  /** 首页顶部活动通知栏开关（独立于系统公告） */
+  topNoticeBarEnabled: boolean
+  /** 首页顶部活动通知栏内容（每行一条，滚动展示） */
+  topNoticeBarText: string
+  /** 顶部导航自定义链接（管理员配置，可带角标 tag） */
+  customNavLinks: CustomNavConfigLink[]
   currency: CurrencyConfig
 }
 
@@ -81,6 +113,9 @@ export const useSystemConfigStore = create<SystemConfigState>()(
         logo: DEFAULT_LOGO,
         homePageTheme: 'classic',
         homePageEasterEggUrl: '',
+        topNoticeBarEnabled: false,
+        topNoticeBarText: '',
+        customNavLinks: [],
         currency: { ...DEFAULT_CURRENCY_CONFIG },
       },
       loading: true,

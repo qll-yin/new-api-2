@@ -111,6 +111,13 @@ func GetStatus(c *gin.Context) {
 		"announcements_enabled": cs.AnnouncementsEnabled,
 		"faq_enabled":           cs.FAQEnabled,
 
+		// 首页顶部活动通知栏（独立于系统公告，后台可开关）
+		"top_notice_bar_enabled": cs.TopNoticeBarEnabled,
+		"top_notice_bar_text":    cs.TopNoticeBarText,
+
+		// 顶部导航自定义链接（管理员配置，可带角标 tag）
+		"custom_nav_links": console_setting.GetCustomNavLinks(),
+
 		// 模块管理配置
 		"HeaderNavModules":    common.OptionMap["HeaderNavModules"],
 		"SidebarModulesAdmin": common.OptionMap["SidebarModulesAdmin"],

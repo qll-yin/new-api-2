@@ -97,6 +97,8 @@ export type TopNavLink = {
   disabled?: boolean
   requiresAuth?: boolean
   external?: boolean
+  /** 导航文字右上角的角标（如 NEW / 最新），来自管理员自定义导航配置 */
+  tag?: string
 }
 
 /**

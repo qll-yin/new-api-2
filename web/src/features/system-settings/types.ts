@@ -155,6 +155,9 @@ export type SiteSettings = {
   'legal.privacy_policy': string
   HeaderNavModules: string
   SidebarModulesAdmin: string
+  'console_setting.top_notice_bar_enabled': boolean
+  'console_setting.top_notice_bar_text': string
+  'console_setting.custom_nav_links': string
 }
 
 export type AuthSettings = {

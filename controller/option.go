@@ -485,6 +485,24 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "console_setting.top_notice_bar_text":
+		err = console_setting.ValidateConsoleSettings(option.Value.(string), "TopNoticeBarText")
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+	case "console_setting.custom_nav_links":
+		err = console_setting.ValidateConsoleSettings(option.Value.(string), "CustomNavLinks")
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
 	}
 	if model.IsPasskeyDomainOption(option.Key) {
 		change, updateErr := model.UpdatePasskeyDomainOptions(map[string]string{option.Key: option.Value.(string)}, false, "")

@@ -37,6 +37,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { defaultTopNavLinks } from '../config/top-nav.config'
 import type { TopNavLink } from '../types'
 import { HeaderLogo } from './header-logo'
+import { TopNoticeBar } from './top-notice-bar'
 
 const AUTH_PROMPT_SECONDS = 5
 
@@ -88,6 +89,8 @@ export function PublicHeader(props: PublicHeaderProps) {
     logo: systemLogo,
     loading,
     logoLoaded,
+    topNoticeBarEnabled,
+    topNoticeBarText,
   } = useSystemConfig()
   const dynamicLinks = useTopNavLinks()
   const notifications = useNotifications()
@@ -98,6 +101,12 @@ export function PublicHeader(props: PublicHeaderProps) {
   const isAuthenticated = !!user
   const displaySiteName = customSiteName || systemName
   const links = dynamicLinks.length > 0 ? dynamicLinks : navLinks
+
+  // 首页顶部活动通知栏：仅在首页展示，且需后台开关打开并有内容
+  const noticeBarActive =
+    pathname === '/' &&
+    topNoticeBarEnabled &&
+    topNoticeBarText.trim().length > 0
 
   let logoContent: ReactNode = (
     <HeaderLogo
@@ -198,9 +207,27 @@ export function PublicHeader(props: PublicHeaderProps) {
     []
   )
 
+  // 自定义导航的角标 tag：文字右上角的圆角矩形徽标，带发光动效
+  const navTag = (tag: string, position?: string) => (
+    <span
+      className={cn(
+        'pointer-events-none absolute rounded-[5px] bg-primary px-1.5 py-px text-[10px] leading-4 font-bold whitespace-nowrap text-primary-foreground shadow-[0_0_8px_var(--primary)] animate-pulse',
+        position ?? '-top-1.5 -right-3'
+      )}
+    >
+      {tag}
+    </span>
+  )
+
   return (
     <>
-      <header className='pointer-events-none fixed inset-x-0 top-0 z-50'>
+      {noticeBarActive && <TopNoticeBar text={topNoticeBarText} />}
+      <header
+        className={cn(
+          'pointer-events-none fixed inset-x-0 top-0 z-50',
+          noticeBarActive && 'top-[35px]'
+        )}
+      >
         <div
           className={cn(
             'pointer-events-auto mx-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
@@ -254,11 +281,12 @@ export function PublicHeader(props: PublicHeaderProps) {
                       tabIndex={link.disabled ? -1 : undefined}
                       onClick={(event) => handleNavLinkClick(event, link)}
                       className={cn(
-                        'text-muted-foreground hover:text-foreground min-w-0 truncate rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
+                        'text-muted-foreground hover:text-foreground relative flex min-w-0 items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
                         link.disabled && 'pointer-events-none opacity-50'
                       )}
                     >
-                      {link.title}
+                      <span className='min-w-0 truncate'>{link.title}</span>
+                      {link.tag ? navTag(link.tag) : null}
                     </a>
                   )
                 }
@@ -270,14 +298,15 @@ export function PublicHeader(props: PublicHeaderProps) {
                     disabled={link.disabled}
                     onClick={(event) => handleNavLinkClick(event, link)}
                     className={cn(
-                      'min-w-0 truncate rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
+                      'relative flex min-w-0 items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200',
                       isActive
                         ? 'text-foreground'
                         : 'text-muted-foreground hover:text-foreground',
                       link.disabled && 'pointer-events-none opacity-50'
                     )}
                   >
-                    {link.title}
+                    <span className='min-w-0 truncate'>{link.title}</span>
+                    {link.tag ? navTag(link.tag) : null}
                   </Link>
                 )
               })}
@@ -360,7 +389,12 @@ export function PublicHeader(props: PublicHeaderProps) {
             : 'pointer-events-none opacity-0'
         )}
       >
-        <div className='flex h-full flex-col justify-between px-8 pt-20 pb-10'>
+        <div
+          className={cn(
+            'flex h-full flex-col justify-between px-8 pb-10',
+            noticeBarActive ? 'pt-[115px]' : 'pt-20'
+          )}
+        >
           <nav className='flex flex-col gap-1'>
             {links.map((link, i) => {
               const isActive = pathname === link.href
@@ -388,7 +422,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                     className={linkClassName}
                     style={transitionStyle}
                   >
-                    {link.title}
+                    <span className='relative'>
+                      {link.title}
+                      {link.tag ? navTag(link.tag, '-top-1 left-full ml-1.5') : null}
+                    </span>
                   </a>
                 )
               }
@@ -401,7 +438,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                   className={linkClassName}
                   style={transitionStyle}
                 >
-                  {link.title}
+                  <span className='relative'>
+                    {link.title}
+                    {link.tag ? navTag(link.tag, '-top-1 left-full ml-1.5') : null}
+                  </span>
                 </Link>
               )
             })}

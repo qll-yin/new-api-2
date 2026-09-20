@@ -3,14 +3,17 @@ package console_setting
 import "github.com/QuantumNous/new-api/setting/config"
 
 type ConsoleSetting struct {
-	ApiInfo              string `json:"api_info"`              // 控制台 API 信息 (JSON 数组字符串)
-	UptimeKumaGroups     string `json:"uptime_kuma_groups"`    // Uptime Kuma 分组配置 (JSON 数组字符串)
-	Announcements        string `json:"announcements"`         // 系统公告 (JSON 数组字符串)
-	FAQ                  string `json:"faq"`                   // 常见问题 (JSON 数组字符串)
-	ApiInfoEnabled       bool   `json:"api_info_enabled"`      // 是否启用 API 信息面板
-	UptimeKumaEnabled    bool   `json:"uptime_kuma_enabled"`   // 是否启用 Uptime Kuma 面板
-	AnnouncementsEnabled bool   `json:"announcements_enabled"` // 是否启用系统公告面板
-	FAQEnabled           bool   `json:"faq_enabled"`           // 是否启用常见问答面板
+	ApiInfo              string `json:"api_info"`               // 控制台 API 信息 (JSON 数组字符串)
+	UptimeKumaGroups     string `json:"uptime_kuma_groups"`     // Uptime Kuma 分组配置 (JSON 数组字符串)
+	Announcements        string `json:"announcements"`          // 系统公告 (JSON 数组字符串)
+	FAQ                  string `json:"faq"`                    // 常见问题 (JSON 数组字符串)
+	ApiInfoEnabled       bool   `json:"api_info_enabled"`       // 是否启用 API 信息面板
+	UptimeKumaEnabled    bool   `json:"uptime_kuma_enabled"`    // 是否启用 Uptime Kuma 面板
+	AnnouncementsEnabled bool   `json:"announcements_enabled"`  // 是否启用系统公告面板
+	FAQEnabled           bool   `json:"faq_enabled"`            // 是否启用常见问答面板
+	TopNoticeBarEnabled  bool   `json:"top_notice_bar_enabled"` // 是否启用首页顶部活动通知栏（独立于系统公告）
+	TopNoticeBarText     string `json:"top_notice_bar_text"`    // 首页顶部活动通知栏内容（每行一条，滚动展示）
+	CustomNavLinks       string `json:"custom_nav_links"`       // 顶部导航自定义链接 (JSON 数组字符串，可带角标 tag)
 }
 
 // 默认配置
@@ -23,6 +26,9 @@ var defaultConsoleSetting = ConsoleSetting{
 	UptimeKumaEnabled:    true,
 	AnnouncementsEnabled: true,
 	FAQEnabled:           true,
+	TopNoticeBarEnabled:  false,
+	TopNoticeBarText:     "",
+	CustomNavLinks:       "",
 }
 
 // 全局实例
