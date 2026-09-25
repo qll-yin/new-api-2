@@ -239,7 +239,32 @@
 - `web/public/robots.txt` + `sitemap.xml`：embed 后由后端 `static.Serve` 伺服；Disallow `/dashboard`、`/system-settings`、`/wallet`、`/api/`；sitemap 含 `/`、`/pricing`、`/rankings`、`/about`。
 - `web/src/hooks/use-document-title.ts`：公开内容页（Pricing/Rankings/About 已接）设 `「页面名 · 系统名」` 标题 + 按路径更新 canonical，卸载还原；页面标题文案走 t()，随界面语言变化。
 - `web/src/i18n/config.ts`：初始化与 `languageChanged` 时把 `document.documentElement.lang` 同步为 BCP-47 标签（经 `toIntlLocale`）。
-- 遗留（第二阶段再做）：JSON-LD 结构化数据、FAQ 富摘要、brotli、预渲染/SSG、llms.txt（GEO）。
+- 遗留（第二阶段再做）：JSON-LD 结构化数据、FAQ 富摘要、brotli、预渲染/SSG。
+
+## 12. GEO：llms.txt / llms-full.txt（面向 AI 助手的站点说明）
+
+### 需求
+推广渠道里 AI 助手/Agent 占比越来越高，需要一个机器可读、能体现平台特性的入口，让模型在回答「7Code AI 是什么 / 有哪些模型 / 怎么调用 / 怎么计费」时能拿到准确事实，而不是猜。
+
+### 实现（纯静态文件，随 `web/dist` embed 由后端 `static.Serve` 伺服）
+- `web/public/llms.txt`：符合 [llmstxt.org](https://llmstxt.org) 规范的索引版——H1 + 摘要 blockquote + 分节链接列表（核心页面 / 公共 JSON 端点 / API 端点 / 详版文档 / Optional）。含三个 base URL、鉴权头形态、以及「模型清单与价格以 `/api/pricing` 为准」的指引。
+- `web/public/llms-full.txt`：详版长文（15 节）——定位与工作原理、平台特性（单 key 三协议 / 多渠道路由与故障转移 / 用量计费与表达式定价 / 多模态与异步任务 / 可审计 / 多语言后台）、完整协议与端点表、鉴权、可复制 curl 快速开始（含流式、Messages、Gemini、图像、异步视频轮询）、计费与额度规则、账号与充值/推广、可靠性与限流、前台/后台功能、自托管部署矩阵、安全姿态、机器可读端点表、FAQ、开源署名与许可、链接。
+- `web/index.html`：`<head>` 增加两个 `<link rel="alternate" type="text/markdown">` 指向两个文件，便于抓取方发现（canonical 之后）。
+
+### 文案事实来源（改动时照此核对，勿凭空写数字）
+- 端点：`router/relay-router.go`、`router/video-router.go`、`router/task-router.go`、`router/api-router.go`（公共 JSON 端点与 `HeaderNavModuleAuth` 的公开/需登录语义）。
+- 鉴权头：`middleware/auth.go`（`Authorization: Bearer`、`x-api-key`、`x-goog-api-key`、`?key=`）。
+- 模型字段与计费维度：`model/pricing.go` 的 `Pricing` 结构（ratio / fixed price / `billing_expr` / cache / image / audio 比例 / `supported_endpoint_types`）。
+- 额度换算：`common/constants.go` 的 `QuotaPerUnit = 500 * 1000`（500,000 额度 = 1 美元，ratio 1 ≈ $0.002 / 1K tokens）。
+- 部署矩阵（SQLite / MySQL ≥ 5.7.8 / PostgreSQL ≥ 9.6 / 独立日志库含 ClickHouse / Redis / amd64+arm64 / Electron）：`README.en.md`。
+- 语言数量与代码：`web/src/i18n/locales/*.json`（en、zh、zh-TW、fr、ru、ja、vi）。
+- **避免写死的数字**：模型数量、具体价格、上下线厂商一律不写死，统一指向 `GET /api/pricing`（活配置生成）。
+
+### 维护约定
+- 新增协议端点、新增计费维度、或调整公开模块策略时，同步更新 `llms-full.txt` 第 3 节（协议与端点）/ 第 6 节（计费）/ 第 12 节（机器可读端点）。
+- 域名变更除 `index.html` / `robots.txt` / `sitemap.xml` 外，还需同步 `llms.txt` 与 `llms-full.txt`（两文件内 URL 为绝对地址）。
+- 两文件为英文（主推海外，与 `html lang="en"`、静态 SEO 文案一致）。
+
 
 ---
 
@@ -258,6 +283,7 @@
    - `web/src/features/home/index.tsx`（上游若改默认首页结构，需保留 classic/7code 分支与彩蛋挂载）
    - `web/src/stores/system-config-store.ts`、`web/src/lib/status-query.ts`（上游加 status 字段时保留我方两字段映射）
    - `web/src/features/system-settings/general/system-info-section.tsx`（上游若改站点设置表单，需回填主题下拉与彩蛋 URL 两字段）
+   - `web/index.html`、`web/public/{robots.txt,sitemap.xml,llms.txt,llms-full.txt}`（上游极少改动这两个文件；合并时保留我方 SEO/GEO 文案与 canonical/OG/llms 链接，favicon 与 og:image 已改指 `img.7code.cc`）
 2. **工厂插件（`plugins/tasks/*/plugin.js`）不改**：视频直链等定制一律在宿主 Go 层做，避免与上游插件更新冲突（wan3.0 等上游新模型直接吃上游更新）。
 3. **locale 只能通过脚本写**：`web/scripts/` 下临时脚本 + `bun run i18n:sync`，键为英文源串，7 语言文件必须同步。
 4. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bun run typecheck` + `bun run build`（构建才能暴露相对路径断裂类问题）。
@@ -296,3 +322,5 @@
 | `bdda11d3a` | 首页顶部活动通知栏（35px 跑马灯）+ 顶部导航自定义链接与发光角标（console_setting 三配置，后台可开关） |
 | `42d963258` | 修通知栏：文案较短时电脑端铺不满容器，按容器宽度自适应拷贝份数 |
 | `47f0e1639` | SEO 第一阶段：双语 meta/OG/Twitter 卡、canonical、robots/sitemap、每页独立标题、html lang 同步 |
+| `8c194bdb6` | SEO 文案改英文主推海外（title/description/OG/Twitter 全 en，`html lang="en"`） |
+| `33a9b7325` | GEO 阶段：llms.txt（索引版）+ llms-full.txt（15 节详版）+ index.html 发现链接 |
