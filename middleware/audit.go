@@ -226,6 +226,21 @@ func TokenOperationAudit() gin.HandlerFunc {
 			action, content = "token.key_view", "API token key access"
 		case "POST /api/token/batch/keys":
 			action, content = "token.key_view_batch", "API token batch key access"
+		case "POST /api/sub_user/":
+			action, content = "sub_user.create", "Sub-user creation"
+		case "PUT /api/sub_user/":
+			action, content = "sub_user.update", "Sub-user configuration update"
+			if c.Query("status_only") != "" {
+				action, content = "sub_user.status_update", "Sub-user status update"
+			}
+		case "DELETE /api/sub_user/:id":
+			action, content = "sub_user.delete", "Sub-user deletion"
+		case "POST /api/sub_user/group":
+			action, content = "sub_user.group_create", "Sub-user group creation"
+		case "PUT /api/sub_user/group":
+			action, content = "sub_user.group_update", "Sub-user group update"
+		case "DELETE /api/sub_user/group/:id":
+			action, content = "sub_user.group_delete", "Sub-user group deletion"
 		default:
 			c.Next()
 			return

@@ -288,6 +288,22 @@ func SetApiRouter(router *gin.Engine) {
 			tokenRoute.POST("/batch/keys", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.GetTokenKeysBatch)
 		}
 
+		// 子用户管理：虚拟子用户 = is_sub_user=true 的令牌，与「API 密钥」同级的自服务接口
+		subUserRoute := apiRouter.Group("/sub_user")
+		subUserRoute.Use(middleware.UserAuth())
+		subUserRoute.Use(middleware.TokenOperationAudit())
+		{
+			subUserRoute.GET("/", controller.GetAllSubUsers)
+			subUserRoute.GET("/search", middleware.SearchRateLimit(), controller.SearchSubUsers)
+			subUserRoute.GET("/groups", controller.GetSubUserGroups)
+			subUserRoute.POST("/group", controller.AddSubUserGroup)
+			subUserRoute.PUT("/group", controller.UpdateSubUserGroup)
+			subUserRoute.DELETE("/group/:id", controller.DeleteSubUserGroup)
+			subUserRoute.POST("/", controller.AddSubUser)
+			subUserRoute.PUT("/", controller.UpdateSubUser)
+			subUserRoute.DELETE("/:id", controller.DeleteSubUser)
+		}
+
 		usageRoute := apiRouter.Group("/usage")
 		usageRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{

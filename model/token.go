@@ -29,6 +29,9 @@ type Token struct {
 	Group              string         `json:"group" gorm:"default:''"`
 	CrossGroupRetry    bool           `json:"cross_group_retry"` // 跨分组重试，仅auto分组有效
 	AutoGroups         string         `json:"-" gorm:"type:text"`
+	IsSubUser          bool           `json:"is_sub_user"`                         // 子用户标记：子用户管理创建的虚拟用户令牌
+	SubNote            string         `json:"sub_note" gorm:"type:text"`           // 子用户备注
+	SubGroupId         int            `json:"sub_group_id" gorm:"default:0;index"` // 子用户分组 Id，0=未分组
 	DeletedAt          gorm.DeletedAt `gorm:"index"`
 }
 
@@ -103,11 +106,22 @@ func (token *Token) GetIpLimits() []string {
 	return ipLimits
 }
 
-func GetAllUserTokens(userId int, startIdx int, num int) ([]*Token, error) {
+// GetUserApiTokens 返回用户名下的普通 API 令牌（排除子用户令牌），用于「API 密钥」页；
+// 子用户令牌由子用户管理接口（GetUserSubUsers）单独读取。
+func GetUserApiTokens(userId int, startIdx int, num int) ([]*Token, error) {
 	var tokens []*Token
 	var err error
-	err = DB.Where("user_id = ?", userId).Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
+	err = DB.Where("user_id = ? AND is_sub_user = ?", userId, false).
+		Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
 	return tokens, err
+}
+
+// CountUserApiTokens 统计用户普通 API 令牌数量（排除子用户令牌），与 GetUserApiTokens 对应，
+// 供「API 密钥」页分页总数使用；令牌数量上限校验请用包含子用户的 CountUserTokens。
+func CountUserApiTokens(userId int) (int64, error) {
+	var total int64
+	err := DB.Model(&Token{}).Where("user_id = ? AND is_sub_user = ?", userId, false).Count(&total).Error
+	return total, err
 }
 
 // sanitizeLikePattern 校验并清洗用户输入的 LIKE 搜索模式。
@@ -183,7 +197,8 @@ func SearchUserTokens(userId int, keyword string, token string, offset int, limi
 		}
 	}
 
-	baseQuery := DB.Model(&Token{}).Where("user_id = ?", userId)
+	// SearchUserTokens 服务于「API 密钥」页，排除子用户令牌（子用户搜索走 SearchUserSubUsers）
+	baseQuery := DB.Model(&Token{}).Where("user_id = ? AND is_sub_user = ?", userId, false)
 
 	// 非空才加 LIKE 条件，空则跳过（不过滤该字段）
 	if keyword != "" {
