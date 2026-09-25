@@ -7007,6 +7007,24 @@
     "Update the sub-user by providing necessary info.": "Mettez à jour le sous-utilisateur en renseignant les informations nécessaires.",
     "e.g. For Zhang San, quota 1000": "ex. Pour Zhang San, quota 1000",
     "e.g. Zhang San": "ex. Zhang San",
-    "{{count}} sub-users": "{{count}} sous-utilisateurs"
+    "{{count}} sub-users": "{{count}} sous-utilisateurs",
+    "Failed to load sub-users": "Échec du chargement des sous-utilisateurs",
+    "Failed to search sub-users": "Échec de la recherche de sous-utilisateurs",
+    "Failed to create sub-user": "Échec de la création du sous-utilisateur",
+    "Failed to update sub-user": "Échec de la mise à jour du sous-utilisateur",
+    "Failed to delete sub-user": "Échec de la suppression du sous-utilisateur",
+    "Failed to update sub-user status": "Échec de la mise à jour du statut du sous-utilisateur",
+    "Failed to load sub-user groups": "Échec du chargement des groupes de sous-utilisateurs",
+    "Failed to create sub-user group": "Échec de la création du groupe de sous-utilisateurs",
+    "Failed to update sub-user group": "Échec de la mise à jour du groupe de sous-utilisateurs",
+    "Failed to delete sub-user group": "Échec de la suppression du groupe de sous-utilisateurs",
+    "Sub-user created successfully": "Sous-utilisateur créé avec succès",
+    "Sub-user updated successfully": "Sous-utilisateur mis à jour avec succès",
+    "Sub-user deleted successfully": "Sous-utilisateur supprimé avec succès",
+    "Sub-user enabled successfully": "Sous-utilisateur activé",
+    "Sub-user disabled successfully": "Sous-utilisateur désactivé",
+    "Sub-user group created successfully": "Groupe de sous-utilisateurs créé avec succès",
+    "Sub-user group updated successfully": "Groupe de sous-utilisateurs mis à jour avec succès",
+    "Sub-user group deleted successfully": "Groupe de sous-utilisateurs supprimé avec succès"
   }
 }

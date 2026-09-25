@@ -30,7 +30,7 @@ const subUserSearchSchema = z.object({
     .optional()
     .catch([]),
   filter: z.string().optional().catch(''),
-  subGroup: z.string().optional().catch(''),
+  subGroup: z.array(z.string()).optional().catch([]),
 })
 
 export const Route = createFileRoute('/_authenticated/sub-users/')({

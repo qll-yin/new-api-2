@@ -217,13 +217,15 @@ export function SubUsersTable() {
     globalFilter: { enabled: true, key: 'filter' },
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
-      { columnId: 'sub_group_id', searchKey: 'subGroup', type: 'string' },
+      { columnId: 'sub_group_id', searchKey: 'subGroup', type: 'array' },
     ],
   })
 
   const subGroupFilter = useMemo(() => {
     const filter = columnFilters.find((f) => f.id === 'sub_group_id')
-    return filter ? String(filter.value) : ''
+    const value = filter?.value
+    if (Array.isArray(value) && value.length > 0) return String(value[0])
+    return ''
   }, [columnFilters])
   const shouldSearch = Boolean(globalFilter?.trim() || subGroupFilter)
 

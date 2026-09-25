@@ -7007,6 +7007,24 @@
     "Update the sub-user by providing necessary info.": "必要な情報を入力してサブユーザーを更新します。",
     "e.g. For Zhang San, quota 1000": "例：張三専用、クォータ 1000",
     "e.g. Zhang San": "例：張三",
-    "{{count}} sub-users": "{{count}} 人のサブユーザー"
+    "{{count}} sub-users": "{{count}} 人のサブユーザー",
+    "Failed to load sub-users": "サブユーザーの読み込みに失敗しました",
+    "Failed to search sub-users": "サブユーザーの検索に失敗しました",
+    "Failed to create sub-user": "サブユーザーの作成に失敗しました",
+    "Failed to update sub-user": "サブユーザーの更新に失敗しました",
+    "Failed to delete sub-user": "サブユーザーの削除に失敗しました",
+    "Failed to update sub-user status": "サブユーザーの状態の更新に失敗しました",
+    "Failed to load sub-user groups": "サブユーザーグループの読み込みに失敗しました",
+    "Failed to create sub-user group": "サブユーザーグループの作成に失敗しました",
+    "Failed to update sub-user group": "サブユーザーグループの更新に失敗しました",
+    "Failed to delete sub-user group": "サブユーザーグループの削除に失敗しました",
+    "Sub-user created successfully": "サブユーザーが正常に作成されました",
+    "Sub-user updated successfully": "サブユーザーが正常に更新されました",
+    "Sub-user deleted successfully": "サブユーザーが正常に削除されました",
+    "Sub-user enabled successfully": "サブユーザーが正常に有効化されました",
+    "Sub-user disabled successfully": "サブユーザーが正常に無効化されました",
+    "Sub-user group created successfully": "サブユーザーグループが正常に作成されました",
+    "Sub-user group updated successfully": "サブユーザーグループが正常に更新されました",
+    "Sub-user group deleted successfully": "サブユーザーグループが正常に削除されました"
   }
 }

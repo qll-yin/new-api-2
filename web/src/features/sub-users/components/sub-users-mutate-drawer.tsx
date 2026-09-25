@@ -52,10 +52,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from '@/components/ui/native-select'
-import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -142,6 +138,16 @@ export function SubUsersMutateDrawer({
   })
 
   const subGroups = subGroupsData ?? []
+  const subGroupOptions = useMemo(
+    () => [
+      { value: String(UNGROUPED_SUB_GROUP_ID), label: t('Ungrouped') },
+      ...subGroups
+        .filter((g) => g.id !== UNGROUPED_SUB_GROUP_ID)
+        .map((g) => ({ value: String(g.id), label: g.name })),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 依赖查询结果而非每次渲染新建的派生数组
+    [subGroupsData, t]
+  )
 
   // Fetch auto groups 配置（auto 分组编辑）
   const {
@@ -397,28 +403,14 @@ export function SubUsersMutateDrawer({
                   <FormItem>
                     <FormLabel>{t('Sub-user Group')}</FormLabel>
                     <FormControl>
-                      <NativeSelect
+                      <ApiKeyGroupCombobox
+                        options={subGroupOptions}
                         value={String(field.value ?? UNGROUPED_SUB_GROUP_ID)}
-                        onChange={(e) =>
-                          field.onChange(Number(e.target.value))
+                        onValueChange={(value) =>
+                          field.onChange(Number(value))
                         }
-                      >
-                        <NativeSelectOption
-                          value={String(UNGROUPED_SUB_GROUP_ID)}
-                        >
-                          {t('Ungrouped')}
-                        </NativeSelectOption>
-                        {subGroups
-                          .filter((g) => g.id !== UNGROUPED_SUB_GROUP_ID)
-                          .map((group) => (
-                            <NativeSelectOption
-                              key={group.id}
-                              value={String(group.id)}
-                            >
-                              {group.name}
-                            </NativeSelectOption>
-                          ))}
-                      </NativeSelect>
+                        placeholder={t('Select a group')}
+                      />
                     </FormControl>
                     <FormDescription>
                       {t(
@@ -737,34 +729,34 @@ export function SubUsersMutateDrawer({
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name='sub_note'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('Note')}</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              {...field}
-                              className='min-h-20 resize-none'
-                              placeholder={t(
-                                'e.g. For Zhang San, quota 1000'
-                              )}
-                              rows={3}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {t('Only visible to you (max 500 characters).')}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 </CollapsibleContent>
               </SideDrawerSection>
             </Collapsible>
+
+            <FormField
+              control={form.control}
+              name='sub_note'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Note')}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      className='min-h-20 resize-none'
+                      placeholder={t(
+                        'e.g. For Zhang San, quota 1000'
+                      )}
+                      rows={3}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('Only visible to you (max 500 characters).')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
         <SheetFooter className={sideDrawerFooterClassName()}>

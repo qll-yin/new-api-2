@@ -7007,6 +7007,24 @@
     "Update the sub-user by providing necessary info.": "Обновите подчинённого пользователя, указав необходимую информацию.",
     "e.g. For Zhang San, quota 1000": "напр. Для Чжан Саня, квота 1000",
     "e.g. Zhang San": "напр. Чжан Сань",
-    "{{count}} sub-users": "{{count}} подчинённых пользователей"
+    "{{count}} sub-users": "{{count}} подчинённых пользователей",
+    "Failed to load sub-users": "Не удалось загрузить подчинённых пользователей",
+    "Failed to search sub-users": "Не удалось выполнить поиск подчинённых пользователей",
+    "Failed to create sub-user": "Не удалось создать подчинённого пользователя",
+    "Failed to update sub-user": "Не удалось обновить подчинённого пользователя",
+    "Failed to delete sub-user": "Не удалось удалить подчинённого пользователя",
+    "Failed to update sub-user status": "Не удалось обновить статус подчинённого пользователя",
+    "Failed to load sub-user groups": "Не удалось загрузить группы подчинённых пользователей",
+    "Failed to create sub-user group": "Не удалось создать группу подчинённых пользователей",
+    "Failed to update sub-user group": "Не удалось обновить группу подчинённых пользователей",
+    "Failed to delete sub-user group": "Не удалось удалить группу подчинённых пользователей",
+    "Sub-user created successfully": "Подчинённый пользователь успешно создан",
+    "Sub-user updated successfully": "Подчинённый пользователь успешно обновлён",
+    "Sub-user deleted successfully": "Подчинённый пользователь успешно удалён",
+    "Sub-user enabled successfully": "Подчинённый пользователь успешно включён",
+    "Sub-user disabled successfully": "Подчинённый пользователь успешно отключён",
+    "Sub-user group created successfully": "Группа подчинённых пользователей успешно создана",
+    "Sub-user group updated successfully": "Группа подчинённых пользователей успешно обновлена",
+    "Sub-user group deleted successfully": "Группа подчинённых пользователей успешно удалена"
   }
 }

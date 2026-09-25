@@ -7007,6 +7007,24 @@
     "Update the sub-user by providing necessary info.": "更新子使用者資訊。",
     "e.g. For Zhang San, quota 1000": "例如：張三專用，額度 1000",
     "e.g. Zhang San": "例如：張三",
-    "{{count}} sub-users": "{{count}} 個子使用者"
+    "{{count}} sub-users": "{{count}} 個子使用者",
+    "Failed to load sub-users": "載入子使用者失敗",
+    "Failed to search sub-users": "搜尋子使用者失敗",
+    "Failed to create sub-user": "建立子使用者失敗",
+    "Failed to update sub-user": "更新子使用者失敗",
+    "Failed to delete sub-user": "刪除子使用者失敗",
+    "Failed to update sub-user status": "更新子使用者狀態失敗",
+    "Failed to load sub-user groups": "載入子使用者群組失敗",
+    "Failed to create sub-user group": "建立子使用者群組失敗",
+    "Failed to update sub-user group": "更新子使用者群組失敗",
+    "Failed to delete sub-user group": "刪除子使用者群組失敗",
+    "Sub-user created successfully": "子使用者建立成功",
+    "Sub-user updated successfully": "子使用者更新成功",
+    "Sub-user deleted successfully": "子使用者刪除成功",
+    "Sub-user enabled successfully": "子使用者已啟用",
+    "Sub-user disabled successfully": "子使用者已停用",
+    "Sub-user group created successfully": "子使用者群組建立成功",
+    "Sub-user group updated successfully": "子使用者群組更新成功",
+    "Sub-user group deleted successfully": "子使用者群組刪除成功"
   }
 }

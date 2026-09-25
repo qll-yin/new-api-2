@@ -7007,6 +7007,24 @@
     "Update the sub-user by providing necessary info.": "Cập nhật người dùng con bằng cách cung cấp thông tin cần thiết.",
     "e.g. For Zhang San, quota 1000": "VD: Dành cho Zhang San, hạn mức 1000",
     "e.g. Zhang San": "VD: Zhang San",
-    "{{count}} sub-users": "{{count}} người dùng con"
+    "{{count}} sub-users": "{{count}} người dùng con",
+    "Failed to load sub-users": "Không thể tải người dùng con",
+    "Failed to search sub-users": "Không thể tìm kiếm người dùng con",
+    "Failed to create sub-user": "Không thể tạo người dùng con",
+    "Failed to update sub-user": "Không thể cập nhật người dùng con",
+    "Failed to delete sub-user": "Không thể xóa người dùng con",
+    "Failed to update sub-user status": "Không thể cập nhật trạng thái người dùng con",
+    "Failed to load sub-user groups": "Không thể tải nhóm người dùng con",
+    "Failed to create sub-user group": "Không thể tạo nhóm người dùng con",
+    "Failed to update sub-user group": "Không thể cập nhật nhóm người dùng con",
+    "Failed to delete sub-user group": "Không thể xóa nhóm người dùng con",
+    "Sub-user created successfully": "Đã tạo người dùng con thành công",
+    "Sub-user updated successfully": "Đã cập nhật người dùng con thành công",
+    "Sub-user deleted successfully": "Đã xóa người dùng con thành công",
+    "Sub-user enabled successfully": "Đã bật người dùng con thành công",
+    "Sub-user disabled successfully": "Đã tắt người dùng con thành công",
+    "Sub-user group created successfully": "Đã tạo nhóm người dùng con thành công",
+    "Sub-user group updated successfully": "Đã cập nhật nhóm người dùng con thành công",
+    "Sub-user group deleted successfully": "Đã xóa nhóm người dùng con thành công"
   }
 }

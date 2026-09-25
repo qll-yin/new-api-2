@@ -7007,6 +7007,24 @@
     "Update the sub-user by providing necessary info.": "Update the sub-user by providing necessary info.",
     "e.g. For Zhang San, quota 1000": "e.g. For Zhang San, quota 1000",
     "e.g. Zhang San": "e.g. Zhang San",
-    "{{count}} sub-users": "{{count}} sub-users"
+    "{{count}} sub-users": "{{count}} sub-users",
+    "Failed to load sub-users": "Failed to load sub-users",
+    "Failed to search sub-users": "Failed to search sub-users",
+    "Failed to create sub-user": "Failed to create sub-user",
+    "Failed to update sub-user": "Failed to update sub-user",
+    "Failed to delete sub-user": "Failed to delete sub-user",
+    "Failed to update sub-user status": "Failed to update sub-user status",
+    "Failed to load sub-user groups": "Failed to load sub-user groups",
+    "Failed to create sub-user group": "Failed to create sub-user group",
+    "Failed to update sub-user group": "Failed to update sub-user group",
+    "Failed to delete sub-user group": "Failed to delete sub-user group",
+    "Sub-user created successfully": "Sub-user created successfully",
+    "Sub-user updated successfully": "Sub-user updated successfully",
+    "Sub-user deleted successfully": "Sub-user deleted successfully",
+    "Sub-user enabled successfully": "Sub-user enabled successfully",
+    "Sub-user disabled successfully": "Sub-user disabled successfully",
+    "Sub-user group created successfully": "Sub-user group created successfully",
+    "Sub-user group updated successfully": "Sub-user group updated successfully",
+    "Sub-user group deleted successfully": "Sub-user group deleted successfully"
   }
 }
