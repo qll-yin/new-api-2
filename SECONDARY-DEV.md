@@ -20,6 +20,9 @@
 | 6 | 公告弹窗提醒（未读公告自动弹出） | ✅ | `72782a1ee`、`d9834b590` |
 | 7 | 推广分成管理员视图（全员明细+筛选） | ✅ | `6ac00e511` |
 | 8 | 默认首页双主题（经典/7Code）+ 首页彩蛋 | ✅ | `4ba4328bf` |
+| 9 | 首页顶部活动通知栏 + 顶部导航自定义链接（角标/背景色） | ✅ | `bdda11d3a`、`42d963258`、`014aec7de` |
+| 10 | SEO/GEO 基础整改 + llms.txt | ✅ | `47f0e1639`、`8c194bdb6`、`33a9b7325` |
+| 11 | 子用户管理（虚拟用户=令牌打标，含分组管理） | ✅ | 见提交索引 |
 
 ---
 
@@ -268,6 +271,35 @@
 - 两文件为英文（主推海外，与 `html lang="en"`、静态 SEO 文案一致）。
 
 
+## 13. 子用户管理（虚拟用户 = 令牌打标）
+
+### 需求
+企业用户要给员工每人一个"账号"来管理与观察用量：普通用户可在「子用户管理」创建虚拟子用户（用户名称、令牌分组、额度（无限或固定）、过期时间、高级设置（auto 分组编辑/模型限制/IP 白名单）、备注），并把令牌直接复制给员工调用，员工无需注册。子用户与令牌强绑定：停用/删除子用户即停用/删除令牌，反之亦然。子用户绑定的令牌在「API 密钥」列表隐藏，避免与自己常用密钥混淆。子用户可归入自建分组（建组/重命名/删除）。
+
+### 设计（关键决策）
+**虚拟子用户 = `is_sub_user=true` 的令牌（同一行数据）**，不建第二套实体、不建真实用户。停用/删除/状态（过期/耗尽）全部天然双向一致；消费日志以令牌名（=子用户名，如"张三"）呈现，用户在「使用日志」页自行按令牌名筛选即可查看员工用量（**不做日志页跳转/改动**，用户明确要求）。
+
+### 后端
+- `model/token.go`：`Token` 新增 `IsSubUser bool`（裸 bool，无 default tag，跟随 UnlimitedQuota 模式）、`SubNote string(text)`、`SubGroupId int(default:0,index)`；`GetAllUserTokens` 改名 `GetUserApiTokens` 并排除子用户令牌（keys 列表与总数 `CountUserApiTokens` 同步排除）；`SearchUserTokens` 排除子用户；`CountUserTokens` 保持**包含**子用户（上限校验用，防绕过 MaxUserTokens）。
+- `model/sub_user.go`（新）：`SubUserGroup` 模型（user_id/name/created_time）；分组 CRUD（同名唯一在模型层校验、删除分组事务内把成员 `sub_group_id` 归 0）；`GetUserSubUsers/CountUserSubUsers/SearchUserSubUsers`（含 keyword LIKE 复用 sanitizeLikePattern、subGroupId 过滤）；`GetSubUserById`（带 `is_sub_user=true` 条件，普通令牌无法经子用户接口操作）；`SubUserNameExists`（同 owner 唯一）；`(*Token).UpdateSubUserFields`（**独立 Select 白名单**：name/group/quota/expired/model_limits/allow_ips/cross_group_retry/auto_groups/sub_note/sub_group_id，不动 `Token.Update()` 白名单以免影响普通令牌编辑路径）。
+- `controller/sub_user.go`（新）：`GET/POST/PUT /api/sub_user/`、`GET /api/sub_user/search`、`DELETE /api/sub_user/:id`、分组 `GET /api/sub_user/groups`、`POST/PUT /api/sub_user/group`、`DELETE /api/sub_user/group/:id`。创建校验完全对齐 AddToken（名称≤50、额度上限 maxTokenQuota、auto 走 setTokenAutoGroups+IsUserSelectableGroup、数量上限）；创建响应**一次性返回明文 key**（之后列表只显示掩码，揭示复用 `POST /api/token/:id/key`，有限流+审计）；状态切换走 `SelectUpdate`（Redis 缓存即时失效），沿用"过期/耗尽不可重新启用"拦截。
+- `router/api-router.go`：`/api/sub_user` 组挂 `UserAuth()` + `TokenOperationAudit()`；`middleware/audit.go` 审计动作新增 `sub_user.create/update/status_update/delete/group_*`。
+- `model/main.go`：`AutoMigrate` 注册 `&SubUserGroup{}`。
+- 计费边界：子用户额度是令牌级独立额度（与钱包解耦，与现有令牌语义一致），不触碰任何计费计算路径；额度上限复用 `maxTokenQuota()`，未新造转换。
+
+### 前端
+- `web/src/features/sub-users/`（新）：Provider 照抄 api-keys-provider（去掉批量/CC-Switch/聊天预设）；创建/编辑抽屉**完整迁移 keys 的 ApiKeysMutateDrawer**（令牌分组 Combobox 含 auto 特效、AutoGroupOrderEditor、cross_group_retry、过期快捷键、额度美元输入、高级设置模型限制/IP 白名单），另加「子用户分组」NativeSelect（未分组=0）与「备注」；无批量创建（子用户是人，一人一条）。列表列：名称/状态/令牌/额度/分组/子用户分组/备注/模型/IP/时间/过期/操作。行操作：启用停用、编辑、复制令牌、删除（危险确认，注明员工调用立即失效）。分组管理弹窗：建组/重命名/删除（ConfirmDialog，显示每组人数）。
+- **跨 feature 复用**：`ApiKeyGroupCombobox`、`AutoGroupOrderEditor`、`ApiKeyGroupCell`、`ApiKeyQuotaCell`、`ApiKeyActivityCell/TimestampCell`、`ModelLimitsCell/IpRestrictionsCell`、状态常量直接从 `@/features/keys/*` 导入（`SubUser` 类型是 `ApiKey` 的 zod extend 超集，结构化兼容）；仅 Provider 耦合的 `ApiKeyCell` 复制为 `sub-user-key-cell.tsx`。
+- 菜单：`use-sidebar-data.ts` general 组「Task Logs」之后加「Sub Users」（UsersRound）；4 处模块表同步（`use-sidebar-config.ts` DEFAULT+URL 映射、maintenance `config.ts`、`sidebar-modules-section.tsx` 元数据、profile `sidebar-modules-card.tsx`，模块 key=`sub_user`）。
+- i18n：+33 flat key ×7 语言（走脚本 + `bun run i18n:sync`）。
+- 测试：`model/sub_user_test.go`（分组 CRUD/唯一/删除迁移成员、查询过滤、UpdateSubUserFields 不碰状态）；`features/sub-users/lib/__tests__/sub-user-form.test.ts`（schema 校验 + 双向转换 6 用例）。
+
+### 验证记录
+- `go build ./...`；`go test ./model/ ./controller/` 全过（controller 223s）。
+- `cd web && bun run typecheck`、`bun run build`、`oxlint`（新增文件 0 警告 0 错误）、`bun run test src/features/sub-users` 6/6 过、`bun run i18n:sync` 0 缺失 0 多余。
+- **SQLite 迁移实测**：临时目录启动两次（fresh DB）——首启建出 `sub_user_groups` 表与 `tokens.is_sub_user/sub_note/sub_group_id` 列（python sqlite3 核对），二启零错误、无重复 ALTER（幂等）；`/api/sub_user/` 未登录返回 401（路由已注册）。
+- 已知取舍：改名后历史消费日志保留旧令牌名（日志存名称快照；Log.TokenId 仍精确关联）——编辑抽屉内有说明文案。
+
 ---
 
 ## 与上游同步（merge）注意事项
@@ -334,3 +366,5 @@
 | `67ef986e5` | GEO 文档校正（去掉不存在的后台 SEO 设置项；计费改为预授权+结算+失败退款表述） |
 | `cad392ce0` | 合并上游 main v1.0.0-rc.39 / v1.0.0-rc.40（44 提交）。冲突 9 个文件：index.html 取我方（上游仅删 favicon 行）、system-info-section.tsx 并集、7 个 locale 冲突块内并集、上游新测试 pre-consume-settings.test.tsx fixture 补我方两字段。上游同轮重构 task 插件 adaptor（认证/usage 参数/多插件绑定）与预扣费语义（PreConsumedQuota → quota_setting.pre_consume_multiplier），我方视频直链注入与推广分成链路不受影响 |
 | `014aec7de` | 自定义导航角标支持背景色（`tag_color` hex，后端正则+前端 zod 校验；渲染按亮度自动选黑/白文字）+ 校验单测 |
+| `efafe3e45` | 子用户管理后端：Token 加 is_sub_user/sub_note/sub_group_id 三列 + SubUserGroup 表 + /api/sub_user 自服务 API（keys 列表隐藏子用户令牌，上限含子用户） |
+| `68e26dc8d` | 子用户管理前端：/sub-users 页面（全功能抽屉/分组管理/一次性 key 弹层）、菜单与 4 处模块表、i18n ×7、表单转换测试 |
