@@ -333,3 +333,4 @@
 | `33a9b7325` | GEO 阶段：llms.txt（索引版）+ llms-full.txt（15 节详版）+ index.html 发现链接 |
 | `67ef986e5` | GEO 文档校正（去掉不存在的后台 SEO 设置项；计费改为预授权+结算+失败退款表述） |
 | `cad392ce0` | 合并上游 main v1.0.0-rc.39 / v1.0.0-rc.40（44 提交）。冲突 9 个文件：index.html 取我方（上游仅删 favicon 行）、system-info-section.tsx 并集、7 个 locale 冲突块内并集、上游新测试 pre-consume-settings.test.tsx fixture 补我方两字段。上游同轮重构 task 插件 adaptor（认证/usage 参数/多插件绑定）与预扣费语义（PreConsumedQuota → quota_setting.pre_consume_multiplier），我方视频直链注入与推广分成链路不受影响 |
+| `014aec7de` | 自定义导航角标支持背景色（`tag_color` hex，后端正则+前端 zod 校验；渲染按亮度自动选黑/白文字）+ 校验单测 |
