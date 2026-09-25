@@ -173,7 +173,7 @@ Any OpenAI-compatible SDK works by setting the base URL to `$BASE/v1`; no other 
 
 ### 6.3 What is metered
 
-Only successful usage is billed. When streaming, the upstream's own final usage report is used. Failures, upstream errors, and requests rejected by the gateway are not charged. Usage logs record the tokens, the model, the channel, and the resulting quota for each request, so any charge can be reconstructed from the account's own logs.
+Billing is pre-authorized and then settled: quota is reserved before a request, the actual measured usage is settled afterwards, and the reservation is refunded when a request fails or produces no billable usage. Failed asynchronous tasks (video and other media work) are refunded as well. When streaming, the upstream's own final usage report is what gets settled. Usage logs record the tokens, the model, the channel, and the resulting quota for each request, so any charge can be reconstructed from the account's own logs.
 
 ### 6.4 Improving cost efficiency
 
@@ -201,7 +201,7 @@ Only successful usage is billed. When streaming, the upstream's own final usage 
 
 For users: API key management with per-key restrictions, model catalog and pricing browser, usage logs and audit logs, wallet and top-up, redemption codes, subscriptions, referral/promotion view, playground for trying models, personal settings and security (password, two-factor, passkeys, active sessions), and a multi-language interface.
 
-For administrators: channel and upstream provider management with tests, model and price configuration including the expression-pricing editor, user and group management with per-group rate multipliers, model access control, task-plugin management, announcement and homepage content, site branding and navigation, SEO-related site settings, logging and audit views, and system monitoring/update pages.
+For administrators: channel and upstream provider management with connectivity tests, model and pricing configuration (model ratios, fixed prices, group ratios, and the expression-pricing editor for media models), user and group management with per-group rate multipliers, model access control, task-plugin management, editable content such as announcements, FAQ, API documentation notes, and homepage content, site branding with a configurable top navigation and an activity notice bar, request policies (routing, retries, health checks, and content filtering), authentication and bot-protection settings, payment and top-up configuration, email and alerting settings, logging and audit views, and system monitoring and update pages.
 
 ## 10. Deployment and operation
 
