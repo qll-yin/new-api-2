@@ -284,10 +284,15 @@
    - `web/src/stores/system-config-store.ts`、`web/src/lib/status-query.ts`（上游加 status 字段时保留我方两字段映射）
    - `web/src/features/system-settings/general/system-info-section.tsx`（上游若改站点设置表单，需回填主题下拉与彩蛋 URL 两字段）
    - `web/index.html`、`web/public/{robots.txt,sitemap.xml,llms.txt,llms-full.txt}`（上游极少改动这两个文件；合并时保留我方 SEO/GEO 文案与 canonical/OG/llms 链接，favicon 与 og:image 已改指 `img.7code.cc`）
+   - `relay/channel/task/jsplugin/adaptor.go`（rc.39/rc.40 起上游改为 `applyUpstreamCredentials` + 可变参数 `applyCompletionUsageFacts` + `pluginruntime.ParseFileReference` + 渠道多插件绑定 `ChannelTypeNewAPI`；我方视频直链注入在 `ConvertToOpenAIVideo`，只依赖 `task.Data`，与这些重构不重叠）
+   - `model/task.go`、`service/task_polling.go`（上游新增 `ResultDiscarded`/`ResultRetrievable` 与列表接口 `Omit("data")`；**必须确认 `GetByTaskId` 仍未 `Omit("data")`**，否则视频直链提取会退化为站内 /content 代理地址）
+   - `web/src/features/system-settings/general/quota-settings-section.tsx`（上游删 `PreConsumedQuota`、加 `quota_setting.trust_quota_usd` / `pre_consume_multiplier`，我方在同一 schema 与表单里加推广分成两项，合并取并集）
 2. **工厂插件（`plugins/tasks/*/plugin.js`）不改**：视频直链等定制一律在宿主 Go 层做，避免与上游插件更新冲突（wan3.0 等上游新模型直接吃上游更新）。
 3. **locale 只能通过脚本写**：`web/scripts/` 下临时脚本 + `bun run i18n:sync`，键为英文源串，7 语言文件必须同步。
-4. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bun run typecheck` + `bun run build`（构建才能暴露相对路径断裂类问题）。
-5. **数据库**：schema 变更仅在真实 SQLite 上验证（用户约定）；上游合入含迁移改动时，启动前备份 SQLite 库文件。
+   - 合并时语言文件必冲突，按「冲突块内并集」解：块内先我方后上游、仅在同一冲突块内部按整行文本去重。**不要跨块按同名键去重**——语言文件是 `{translation, homepage}` 双命名空间，顶层键与 `homepage` 内键同名同缩进（如 `Models`），跨块去重会误删 homepage 的键并导致 TS 报「Property 'Models' does not exist」。
+4. **上游新增测试的 fixture 要补我方字段**：`web/src/features/system-settings/general/__tests__/pre-consume-settings.test.tsx` 构造 `QuotaSettingsSection` 的 props 时需带 `PromotionCommissionEnabled: false` / `PromotionCommissionRate: 0`，否则 `bun run typecheck` 报缺属性（上游每次改这个测试都要顺手补）。
+5. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bun run typecheck` + `bun run build`（构建才能暴露相对路径断裂类问题）。
+6. **数据库**：schema 变更仅在真实 SQLite 上验证（用户约定）；上游合入含迁移改动时，启动前备份 SQLite 库文件。
 
 ---
 
@@ -324,3 +329,5 @@
 | `47f0e1639` | SEO 第一阶段：双语 meta/OG/Twitter 卡、canonical、robots/sitemap、每页独立标题、html lang 同步 |
 | `8c194bdb6` | SEO 文案改英文主推海外（title/description/OG/Twitter 全 en，`html lang="en"`） |
 | `33a9b7325` | GEO 阶段：llms.txt（索引版）+ llms-full.txt（15 节详版）+ index.html 发现链接 |
+| `67ef986e5` | GEO 文档校正（去掉不存在的后台 SEO 设置项；计费改为预授权+结算+失败退款表述） |
+| `cad392ce0` | 合并上游 main v1.0.0-rc.39 / v1.0.0-rc.40（44 提交）。冲突 9 个文件：index.html 取我方（上游仅删 favicon 行）、system-info-section.tsx 并集、7 个 locale 冲突块内并集、上游新测试 pre-consume-settings.test.tsx fixture 补我方两字段。上游同轮重构 task 插件 adaptor（认证/usage 参数/多插件绑定）与预扣费语义（PreConsumedQuota → quota_setting.pre_consume_multiplier），我方视频直链注入与推广分成链路不受影响 |
