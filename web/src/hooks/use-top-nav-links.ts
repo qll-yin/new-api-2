@@ -24,6 +24,7 @@ import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { parseCustomNavLinks } from '@/stores/system-config-store'
 import { useAuthStore } from '@/stores/auth-store'
 
+// 与 components/layout/types.ts 的 TopNavLink 保持一致（两处都需同步新增字段）
 export type TopNavLink = {
   title: string
   href: string
@@ -32,6 +33,8 @@ export type TopNavLink = {
   external?: boolean
   /** 导航文字右上角的角标（如 NEW / 最新），来自管理员自定义导航配置 */
   tag?: string
+  /** 角标背景色（hex，如 #2b2b2b）；留空使用主题色 */
+  tagColor?: string
 }
 
 /**
@@ -103,7 +106,7 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('About'), href: '/about' })
   }
 
-  // 自定义导航（管理员在系统设置中配置，可带角标 tag；
+  // 自定义导航（管理员在系统设置中配置，可带角标 tag 与角标背景色；
   // URL 以 "/" 开头视为站内路由，其余按外链新窗口打开）
   for (const custom of parseCustomNavLinks(
     (status as Record<string, unknown> | null)?.custom_nav_links
@@ -113,6 +116,7 @@ export function useTopNavLinks(): TopNavLink[] {
       href: custom.url,
       external: !custom.url.startsWith('/'),
       tag: custom.tag,
+      tagColor: custom.tag_color,
     })
   }
 

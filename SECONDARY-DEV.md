@@ -207,27 +207,29 @@
 - 状态链路：`status-query.ts` / `system-config-store.ts` 新增 `topNoticeBarEnabled` / `topNoticeBarText`；`use-update-option.ts` 的 `STATUS_RELATED_KEYS` 收录两个 key（保存后失效 status 缓存）。
 - 后台设置：站点与品牌 → 新分区「顶部通知栏」（`maintenance/top-notice-bar-section.tsx`：开关 + 多行 Textarea）。
 
-## 10. 顶部导航自定义链接（含角标 tag）
+## 10. 顶部导航自定义链接（含角标 tag 与角标背景色）
 
 ### 需求
-在"站点与品牌 → 顶部导航"分区内新增自定义导航：管理员可添加多条（名称 + URL + 可选角标 tag），例如跳转自己开发的画布应用；tag 在导航文字右上角显示发光圆角徽标（如 NEW / 最新）。
+在"站点与品牌 → 顶部导航"分区内新增自定义导航：管理员可添加多条（名称 + URL + 可选角标 tag），例如跳转自己开发的画布应用；tag 在导航文字右上角显示发光圆角徽标（如 NEW / 最新）。**角标背景色可单独配置（hex，如 `#2b2b2b`）**，不配置时用主题色。
 
 ### 行为口径
 - 追加在内置导航（Home/Console/模型广场/排行榜/文档/关于）之后，最多 10 条。
 - URL 以 `/` 开头按站内路由用 `<Link>` 打开，其余按外链 `<a target='_blank' rel='noopener noreferrer'>`；tag≤10 字符、名称≤30 字符、URL≤500 字符，`javascript:` 等危险内容被后端校验拦截。
 - 角标样式：primary 底色圆角小徽标 + `animate-pulse` + primary 色辉光阴影，desktop（文字右侧 -top-1.5 -right-3）与 mobile 抽屉（文字右上 left-full）各自定位。
+- 角标背景色：`tag_color` 支持 `#RGB` / `#RRGGBB`（后端正则 + 前端 zod 双重校验，非法值直接拒绝保存）；配了自定义色时辉光阴影同色，文字颜色按相对亮度自动选黑/白以保证可读性；留空/清空则回到主题色。该字段只在有 tag 时才写入。
 - 已登录用户与游客同样可见（公共头部导航）。
 
 ### 后端（无 schema 变更）
 - `setting/console_setting/config.go`：`CustomNavLinks`（JSON 数组字符串，默认空）。
-- `setting/console_setting/validation.go`：`CustomNavLink` 结构体 + `validateCustomNavLinks`（≤10 条、字段长度、URL 正则或 `/` 前缀、危险内容）+ `GetCustomNavLinks()`（去空白、跳过空条目）。
+- `setting/console_setting/validation.go`：`CustomNavLink` 结构体（`title`/`url`/`tag`/`tag_color`）+ `hexColorRegex` + `validateCustomNavLinks`（≤10 条、字段长度、URL 正则或 `/` 前缀、tag_color hex 校验、危险内容）+ `GetCustomNavLinks()`（去空白、跳过空条目）。
+- `setting/console_setting/validation_test.go`：`TestValidateCustomNavLinksTagColor`（合法 `#2b2b2b`/`#abc`/带空格、非法 `red`/`#12345`/`#gggggg`/CSS 注入串）。
 - `controller/option.go`：保存时校验 `console_setting.custom_nav_links`；`controller/misc.go`：`/api/status` 下发 `custom_nav_links`（解析后的数组）。
 
 ### 前端
-- `system-config-store.ts`：`CustomNavConfigLink` 类型 + `parseCustomNavLinks`（status 链路共用）；`use-top-nav-links.ts` 合并自定义导航进返回数组（`TopNavLink` 增加 `tag?`，`components/layout/types.ts` 同步）。
-- `public-header.tsx`：desktop/mobile 两处渲染 `navTag()` 角标（外层改 flex、截断移到内层 span，避免 overflow 裁掉角标）。
-- 后台设置：`maintenance/custom-nav-links-section.tsx`（表格 + 弹窗编辑器），内嵌在「顶部导航」分区（`site/section-registry.tsx` 组合渲染），保存 key 为 `console_setting.custom_nav_links`。
-- i18n：7 语言各 22 个新 flat key（`homepage` 嵌套命名空间不受影响）。
+- `system-config-store.ts`：`CustomNavConfigLink` 类型（`tag_color` 与后端 JSON 同名）+ `parseCustomNavLinks`（status 链路共用，非法颜色丢弃）；`use-top-nav-links.ts` 合并自定义导航进返回数组（`TopNavLink` 增加 `tag?` 与 `tagColor?`，`components/layout/types.ts` 的同名类型需同步——**两份 TopNavLink 定义必须一起改**）。
+- `public-header.tsx`：desktop/mobile 四处渲染 `navTag(tag, color?, position?)` 角标（外层改 flex、截断移到内层 span，避免 overflow 裁掉角标；自定义色走 inline style）。
+- 后台设置：`maintenance/custom-nav-links-section.tsx`（表格 + 弹窗编辑器），内嵌在「顶部导航」分区（`site/section-registry.tsx` 组合渲染），保存 key 为 `console_setting.custom_nav_links`；编辑器含「角标背景色（可选）」hex 输入，表格用色块预览已配置颜色。
+- i18n：本功能累计新增 24 个 flat key ×7 语言（`homepage` 嵌套命名空间不受影响）。
 
 ## 11. SEO 第一阶段基础整改
 

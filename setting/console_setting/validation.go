@@ -22,6 +22,8 @@ var (
 		"violet": true, "grey": true, "slate": true,
 	}
 	slugRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	// hexColorRegex 自定义导航角标背景色：#RGB 或 #RRGGBB
+	hexColorRegex = regexp.MustCompile(`^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
 )
 
 func parseJSONArray(jsonStr string, typeName string) ([]map[string]interface{}, error) {
@@ -319,9 +321,10 @@ func GetUptimeKumaGroups() []map[string]interface{} {
 // CustomNavLink 顶部导航自定义链接（管理员在系统设置中配置）。
 // URL 以 "/" 开头视为站内路由，其余按外链处理（前端新窗口打开）。
 type CustomNavLink struct {
-	Title string `json:"title"`
-	URL   string `json:"url"`
-	Tag   string `json:"tag,omitempty"`
+	Title    string `json:"title"`
+	URL      string `json:"url"`
+	Tag      string `json:"tag,omitempty"`
+	TagColor string `json:"tag_color,omitempty"` // 角标背景色（hex，如 #2b2b2b；留空用主题色）
 }
 
 func validateCustomNavLinks(linksStr string) error {
@@ -368,6 +371,14 @@ func validateCustomNavLinks(linksStr string) error {
 				}
 			}
 		}
+		if tagColor, exists := link["tag_color"]; exists {
+			if tagColorStr, ok := tagColor.(string); ok {
+				trimmed := strings.TrimSpace(tagColorStr)
+				if trimmed != "" && !hexColorRegex.MatchString(trimmed) {
+					return fmt.Errorf("第%d个自定义导航的角标背景色必须是 hex 颜色（如 #2b2b2b）", i+1)
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -384,6 +395,7 @@ func GetCustomNavLinks() []CustomNavLink {
 		link.Title = strings.TrimSpace(link.Title)
 		link.URL = strings.TrimSpace(link.URL)
 		link.Tag = strings.TrimSpace(link.Tag)
+		link.TagColor = strings.TrimSpace(link.TagColor)
 		if link.Title == "" || link.URL == "" {
 			continue
 		}

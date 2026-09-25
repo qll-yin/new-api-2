@@ -6972,6 +6972,8 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Tag background color (Optional)": "Tag background color (Optional)",
+    "Hex color for the badge background, e.g. #2b2b2b. Leave empty to use the theme color.": "Hex color for the badge background, e.g. #2b2b2b. Leave empty to use the theme color."
   }
 }

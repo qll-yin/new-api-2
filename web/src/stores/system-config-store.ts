@@ -40,12 +40,16 @@ export interface CurrencyConfig {
 
 export const MAX_CUSTOM_NAV_LINKS = 10
 
-/** 顶部导航自定义链接（管理员在系统设置中配置，可带角标 tag）。 */
+/** 顶部导航自定义链接（管理员在系统设置中配置，可带角标 tag / 角标背景色）。 */
 export interface CustomNavConfigLink {
   title: string
   url: string
   tag?: string
+  /** 角标背景色（hex，如 #2b2b2b）；字段名与后端 JSON 一致 */
+  tag_color?: string
 }
+
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
 /** Parse the `custom_nav_links` status payload, dropping unusable entries. */
 export function parseCustomNavLinks(value: unknown): CustomNavConfigLink[] {
@@ -58,7 +62,12 @@ export function parseCustomNavLinks(value: unknown): CustomNavConfigLink[] {
     const url = typeof record.url === 'string' ? record.url.trim() : ''
     if (!title || !url) continue
     const tag = typeof record.tag === 'string' ? record.tag.trim() : ''
-    result.push(tag ? { title, url, tag } : { title, url })
+    const tagColor =
+      typeof record.tag_color === 'string' ? record.tag_color.trim() : ''
+    const link: CustomNavConfigLink = { title, url }
+    if (tag) link.tag = tag
+    if (tag && HEX_COLOR_PATTERN.test(tagColor)) link.tag_color = tagColor
+    result.push(link)
     if (result.length >= MAX_CUSTOM_NAV_LINKS) break
   }
   return result

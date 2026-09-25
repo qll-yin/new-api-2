@@ -99,6 +99,8 @@ export type TopNavLink = {
   external?: boolean
   /** 导航文字右上角的角标（如 NEW / 最新），来自管理员自定义导航配置 */
   tag?: string
+  /** 角标背景色（hex，如 #2b2b2b）；留空使用主题色 */
+  tagColor?: string
 }
 
 /**

@@ -48,11 +48,15 @@ type CustomNavLink = {
   title: string
   url: string
   tag?: string
+  /** 角标背景色（hex，如 #2b2b2b）；字段名与后端 JSON 一致 */
+  tag_color?: string
 }
 
 type CustomNavLinksSectionProps = {
   data: string
 }
+
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
 const customNavLinkSchema = z.object({
   title: z.string().min(1, 'Title is required').max(30),
@@ -68,6 +72,13 @@ const customNavLinkSchema = z.object({
       'Enter a site path starting with / or an absolute URL'
     ),
   tag: z.string().max(10).optional(),
+  tagColor: z
+    .string()
+    .refine(
+      (value) => value === '' || HEX_COLOR_PATTERN.test(value),
+      'Enter a hex color like #2b2b2b'
+    )
+    .optional(),
 })
 
 type CustomNavLinkFormValues = z.infer<typeof customNavLinkSchema>
@@ -84,7 +95,7 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
 
   const form = useForm<CustomNavLinkFormValues>({
     resolver: zodResolver(customNavLinkSchema),
-    defaultValues: { title: '', url: '', tag: '' },
+    defaultValues: { title: '', url: '', tag: '', tagColor: '' },
   })
 
   useEffect(() => {
@@ -105,7 +116,7 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
 
   const handleAdd = () => {
     setEditingIndex(null)
-    form.reset({ title: '', url: '', tag: '' })
+    form.reset({ title: '', url: '', tag: '', tagColor: '' })
     setShowDialog(true)
   }
 
@@ -115,6 +126,7 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
       title: links[index]?.title ?? '',
       url: links[index]?.url ?? '',
       tag: links[index]?.tag ?? '',
+      tagColor: links[index]?.tag_color ?? '',
     })
     setShowDialog(true)
   }
@@ -126,10 +138,16 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
   }
 
   const handleSubmitForm = (values: CustomNavLinkFormValues) => {
+    const tag = values.tag?.trim() || undefined
+    const tagColor = values.tagColor?.trim() || undefined
     const normalized: CustomNavLink = {
       title: values.title.trim(),
       url: values.url.trim(),
-      tag: values.tag?.trim() || undefined,
+    }
+    if (tag) {
+      normalized.tag = tag
+      // 角标背景色只在有角标时才有意义
+      if (tagColor) normalized.tag_color = tagColor
     }
     if (editingIndex !== null) {
       setLinks((prev) =>
@@ -147,9 +165,12 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
       await updateOption.mutateAsync({
         key: 'console_setting.custom_nav_links',
         value: JSON.stringify(
-          links.map((link) =>
-            link.tag ? { ...link, tag: link.tag } : { title: link.title, url: link.url }
-          )
+          links.map((link) => {
+            const entry: CustomNavLink = { title: link.title, url: link.url }
+            if (link.tag) entry.tag = link.tag
+            if (link.tag && link.tag_color) entry.tag_color = link.tag_color
+            return entry
+          })
         ),
       })
       setHasChanges(false)
@@ -206,7 +227,16 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
               header: t('Tag'),
               cell: (link) =>
                 link.tag ? (
-                  <Badge variant='default'>{link.tag}</Badge>
+                  <span className='inline-flex items-center gap-1.5'>
+                    <Badge variant='default'>{link.tag}</Badge>
+                    {link.tag_color ? (
+                      <span
+                        className='size-3 shrink-0 rounded-full border'
+                        style={{ backgroundColor: link.tag_color }}
+                        title={link.tag_color}
+                      />
+                    ) : null}
+                  </span>
                 ) : (
                   '-'
                 ),
@@ -306,6 +336,24 @@ export function CustomNavLinksSection({ data }: CustomNavLinksSectionProps) {
                   <FormDescription>
                     {t(
                       'Short badge shown at the top-right of the link with a glow effect (max 10 characters), e.g. NEW.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='tagColor'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Tag background color (Optional)')}</FormLabel>
+                  <FormControl>
+                    <Input placeholder='#2b2b2b' {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Hex color for the badge background, e.g. #2b2b2b. Leave empty to use the theme color.'
                     )}
                   </FormDescription>
                   <FormMessage />

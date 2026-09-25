@@ -6972,6 +6972,8 @@
     "Zhipu": "智谱",
     "Zhipu GLM": "智谱GLM",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Tag background color (Optional)": "角标背景色（可选）",
+    "Hex color for the badge background, e.g. #2b2b2b. Leave empty to use the theme color.": "角标背景色的 hex 值，例如 #2b2b2b；留空则使用主题色。"
   }
 }

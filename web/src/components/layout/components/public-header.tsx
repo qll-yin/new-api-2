@@ -207,17 +207,39 @@ export function PublicHeader(props: PublicHeaderProps) {
     []
   )
 
-  // 自定义导航的角标 tag：文字右上角的圆角矩形徽标，带发光动效
-  const navTag = (tag: string, position?: string) => (
-    <span
-      className={cn(
-        'pointer-events-none absolute rounded-[5px] bg-primary px-1.5 py-px text-[10px] leading-4 font-bold whitespace-nowrap text-primary-foreground shadow-[0_0_8px_var(--primary)] animate-pulse',
-        position ?? '-top-1.5 -right-3'
-      )}
-    >
-      {tag}
-    </span>
-  )
+  // 自定义导航的角标 tag：文字右上角的圆角矩形徽标，带发光动效。
+  // 背景色由管理员配置（hex，可留空用主题色）；自定义色按亮度选黑/白文字保证可读性。
+  const navTag = (tag: string, color?: string, position?: string) => {
+    let tagClass =
+      'bg-primary text-primary-foreground shadow-[0_0_8px_var(--primary)]'
+    if (color) {
+      const hex = color.slice(1)
+      const full = hex.length === 3 ? hex.replace(/./g, (c) => c + c) : hex
+      const r = parseInt(full.slice(0, 2), 16)
+      const g = parseInt(full.slice(2, 4), 16)
+      const b = parseInt(full.slice(4, 6), 16)
+      tagClass =
+        (r * 299 + g * 587 + b * 114) / 1000 > 150
+          ? 'text-black/85'
+          : 'text-white'
+    }
+    return (
+      <span
+        className={cn(
+          'pointer-events-none absolute rounded-[5px] px-1.5 py-px text-[10px] leading-4 font-bold whitespace-nowrap animate-pulse',
+          tagClass,
+          position ?? '-top-1.5 -right-3'
+        )}
+        style={
+          color
+            ? { backgroundColor: color, boxShadow: `0 0 8px ${color}` }
+            : undefined
+        }
+      >
+        {tag}
+      </span>
+    )
+  }
 
   return (
     <>
@@ -286,7 +308,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                       )}
                     >
                       <span className='min-w-0 truncate'>{link.title}</span>
-                      {link.tag ? navTag(link.tag) : null}
+                      {link.tag ? navTag(link.tag, link.tagColor) : null}
                     </a>
                   )
                 }
@@ -306,7 +328,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                     )}
                   >
                     <span className='min-w-0 truncate'>{link.title}</span>
-                    {link.tag ? navTag(link.tag) : null}
+                    {link.tag ? navTag(link.tag, link.tagColor) : null}
                   </Link>
                 )
               })}
@@ -424,7 +446,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                   >
                     <span className='relative'>
                       {link.title}
-                      {link.tag ? navTag(link.tag, '-top-1 left-full ml-1.5') : null}
+                      {link.tag ? navTag(link.tag, link.tagColor, '-top-1 left-full ml-1.5') : null}
                     </span>
                   </a>
                 )
@@ -440,7 +462,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                 >
                   <span className='relative'>
                     {link.title}
-                    {link.tag ? navTag(link.tag, '-top-1 left-full ml-1.5') : null}
+                    {link.tag ? navTag(link.tag, link.tagColor, '-top-1 left-full ml-1.5') : null}
                   </span>
                 </Link>
               )
