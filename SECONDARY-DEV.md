@@ -369,3 +369,4 @@
 | `efafe3e45` | 子用户管理后端：Token 加 is_sub_user/sub_note/sub_group_id 三列 + SubUserGroup 表 + /api/sub_user 自服务 API（keys 列表隐藏子用户令牌，上限含子用户） |
 | `68e26dc8d` | 子用户管理前端：/sub-users 页面（全功能抽屉/分组管理/一次性 key 弹层）、菜单与 4 处模块表、i18n ×7、表单转换测试 |
 | `048115dc1` | 子用户管理本地测试反馈修复：分组筛选 subGroup 改 array URL 状态（对齐 keys status 模式，修选中不同步）；抽屉子用户分组复用 ApiKeyGroupCombobox、备注移出高级设置；补齐 18 条 toast 消息键 ×7 语言 |
+| `b4c8b6895` | 子用户筛选勾选态修复：列定义去 useMemo（memo 化会让 TanStack 复用 Column 实例 + React.memo 的筛选下拉冻结勾选，须等 now 跳动才刷新）；抽屉子用户分组改用共享 ui/combobox（标准尺寸） |
