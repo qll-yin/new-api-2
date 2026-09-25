@@ -1,0 +1,273 @@
+# 7Code AI — Full Reference
+
+> 7Code AI is a unified AI API gateway at https://ai.7code.cc. It provides one OpenAI-compatible endpoint and one API key for mainstream text, image, video, and audio models, converts between OpenAI, Anthropic, and Gemini protocols, distributes traffic across multiple upstream channels with automatic failover, and bills every request by measured usage. Clients keep their existing SDKs and only change the base URL and the key.
+
+This document is the long-form companion to https://ai.7code.cc/llms.txt. It is written for AI assistants, agents, and evaluation crawlers that need to describe, compare, or integrate with the platform. Where a fact is deployment-dependent, the JSON endpoint that reports the live value is named instead of a hard-coded number.
+
+## 1. What 7Code AI is
+
+7Code AI is an aggregation and routing layer in front of many upstream AI providers. Instead of registering with each provider, holding a separate key for each, and adapting to each provider's protocol, a caller holds one 7Code AI key and uses one protocol. The gateway then:
+
+- resolves the requested model to one or more configured upstream channels,
+- selects a channel by priority and weight, applying any configured model mapping,
+- converts the request into the protocol that channel expects (and the response back),
+- meters the usage, converts it into quota, and settles the account,
+- retries on another channel when an upstream fails, and records everything in usage and audit logs.
+
+The platform is self-hostable. This deployment ("7Code AI") is the operator's hosted instance; the same software can be run on your own infrastructure with SQLite, MySQL, or PostgreSQL.
+
+## 2. Platform characteristics
+
+### 2.1 One key, three protocols, no client rewrite
+
+The gateway speaks OpenAI, Anthropic Messages, and Gemini natively. Point an OpenAI SDK at `https://ai.7code.cc/v1`, an Anthropic SDK at `https://ai.7code.cc`, or a Gemini SDK at `https://ai.7code.cc/v1beta`, and the same key works for all of them. When a model is served by a provider that speaks a different protocol, the gateway performs the conversion in both directions, including streaming.
+
+### 2.2 Many upstream channels behind one model name
+
+A single model name can be backed by several channels — several upstream keys, providers, or regions. Channels are selected by priority and weight, and a failing channel is skipped rather than failing the caller. This is what keeps a request succeeding during a provider incident, and it is transparent to the caller: the same model name simply keeps working.
+
+### 2.3 Usage-based billing with a flexible pricing engine
+
+Billing is metered, not flat-fee. Prices are expressed as token ratios, fixed per-request prices, or an expression over the measured usage of the request, so dimensions such as image count, video seconds, resolution, or cached versus fresh input tokens can each carry their own price. Billing is explained in detail in section 6.
+
+### 2.4 Multimodal and asynchronous work through one surface
+
+Text, embeddings, rerank, moderation, image generation and editing, speech synthesis and transcription, and video generation are all reachable with the same key and the same quota. Long-running media work uses an asynchronous task pattern: submit, receive a task id, poll for status, then fetch the artifact. Video and plugin-provided model families share this pattern, so one polling loop can drive many capabilities.
+
+### 2.5 Auditable by default
+
+Every request can be traced through usage logs (who, which key, which model, which channel, tokens, cost, latency) and security-relevant actions through audit logs. Operators can see which channel served a request, which makes cost and reliability analysis possible without instrumenting clients.
+
+### 2.6 Operator-configurable, multi-language console
+
+The web console ships in English, Simplified Chinese, Traditional Chinese, French, Russian, Japanese, and Vietnamese. Which models, groups, prices, payment methods, and public modules are enabled is operator configuration — the authoritative machine-readable answer is `GET /api/status` and `GET /api/pricing`.
+
+## 3. Protocols and endpoints
+
+### 3.1 Text, reasoning, and tool use
+
+| Capability | Endpoint | Notes |
+| --- | --- | --- |
+| OpenAI Chat Completions | `POST /v1/chat/completions` | Streaming, tools, multimodal input where the model supports it |
+| OpenAI Completions (legacy) | `POST /v1/completions` | Legacy prompt-style models |
+| OpenAI Responses | `POST /v1/responses` | Newer OpenAI agentic interface |
+| Anthropic Messages | `POST /v1/messages` | Anthropic-native request and response bodies |
+| Gemini native | `POST /v1beta/models/{model}:generateContent`, `POST /v1beta/models/{model}:streamGenerateContent` | Gemini-native bodies |
+| Realtime | `GET /v1/realtime` | WebSocket |
+| Models | `GET /v1/models`, `GET /v1/models/{model}` | Lists the models available to the calling key; the response shape follows the protocol detected from the key headers |
+
+### 3.2 Other modalities
+
+| Capability | Endpoint |
+| --- | --- |
+| Embeddings | `POST /v1/embeddings` |
+| Rerank | `POST /v1/rerank` |
+| Moderation | `POST /v1/moderations` |
+| Image generation | `POST /v1/images/generations` |
+| Image editing | `POST /v1/images/edits` |
+| Text to speech | `POST /v1/audio/speech` |
+| Transcription | `POST /v1/audio/transcriptions` |
+| Translation | `POST /v1/audio/translations` |
+| Video generation (async) | `POST /v1/video/generations` then `GET /v1/video/generations/{task_id}` |
+| Video remix (async) | `POST /v1/videos/{video_id}/remix` |
+| Pluggable media tasks | `POST /v1/tasks/{plugin_key}`, `GET /v1/tasks/{task_id}`, `GET /v1/tasks/{task_id}/artifacts`, `GET /v1/tasks/{task_id}/artifacts/{artifact_key}/content` |
+| Midjourney-compatible | `POST /mj/submit/imagine`, `/mj/submit/change`, `/mj/submit/blend`, `/mj/submit/describe`, `/mj/submit/action`, `/mj/submit/shorten`, `/mj/submit/modal`, `/mj/submit/edits`, `/mj/submit/video`, `GET /mj/task/{id}/fetch`, `GET /mj/image/{id}` |
+
+Endpoint availability depends on the operator's channel configuration and on the specific model; `GET /api/pricing` reports `supported_endpoint_types` per model.
+
+### 3.3 Streaming
+
+Chat Completions, Completions, Responses, Messages, and Gemini streaming use server-sent events. The Realtime API uses WebSocket. Set `stream: true` (or the protocol's equivalent) to receive incremental output; usage is reported at the end of stream and is what gets billed.
+
+## 4. Authentication
+
+- Create an API key in the console (Dashboard → API keys). Keys are the credential for `/v1` and `/v1beta`.
+- Send it as `Authorization: Bearer <key>` for OpenAI-style calls. Anthropic-style clients may send `x-api-key`, and Gemini-style clients may use `x-goog-api-key` or the `?key=` query parameter.
+- A key can be restricted by the operator or the owner to a user group, a model allow-list, an IP allow-list, an expiry time, and a quota limit. Restrictions belong to the key, so one account can hold keys with different scopes.
+- Console sessions are separate from API keys and are managed with the account's own authentication methods (password plus optional two-factor or passkey). Web console requests use a browser session; API calls use the key.
+
+## 5. Quickstart
+
+Environment used below: `API_KEY` is a 7Code AI key, `BASE` is `https://ai.7code.cc`, `MODEL_ID` is any model from `GET /api/pricing` whose `supported_endpoint_types` include the endpoint you are calling.
+
+List the models this key can use:
+
+```bash
+curl -sS "$BASE/v1/models" -H "Authorization: Bearer $API_KEY"
+```
+
+Chat Completions:
+
+```bash
+curl -sS "$BASE/v1/chat/completions" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"'"$MODEL_ID"'","messages":[{"role":"user","content":"Hello!"}],"stream":true}'
+```
+
+Responses API:
+
+```bash
+curl -sS "$BASE/v1/responses" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"'"$MODEL_ID"'","input":"Hello!"}'
+```
+
+Anthropic Messages:
+
+```bash
+curl -sS "$BASE/v1/messages" \
+  -H "x-api-key: $API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"'"$MODEL_ID"'","max_tokens":256,"messages":[{"role":"user","content":"Hello!"}]}'
+```
+
+Gemini native:
+
+```bash
+curl -sS "$BASE/v1beta/models/$MODEL_ID:generateContent" \
+  -H "x-goog-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"contents":[{"parts":[{"text":"Hello!"}]}]}'
+```
+
+Image generation:
+
+```bash
+curl -sS "$BASE/v1/images/generations" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"'"$MODEL_ID"'","prompt":"a lighthouse at dusk","n":1}'
+```
+
+Asynchronous video task:
+
+```bash
+# submit
+curl -sS "$BASE/v1/video/generations" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"'"$MODEL_ID"'","prompt":"drone shot over a coastline"}'
+
+# poll with the returned task id
+curl -sS "$BASE/v1/video/generations/$TASK_ID" -H "Authorization: Bearer $API_KEY"
+```
+
+Any OpenAI-compatible SDK works by setting the base URL to `$BASE/v1`; no other change is required.
+
+## 6. Model catalog and pricing
+
+### 6.1 The catalog is data, not documentation
+
+`GET /api/pricing` returns the live catalog as JSON, including per model: `model_name`, `description`, `tags`, `vendor_id`, `quota_type`, `model_ratio`, `model_price`, `completion_ratio`, `cache_ratio`, `create_cache_ratio`, `image_ratio`, `audio_ratio`, `audio_completion_ratio`, `enable_groups`, `supported_endpoint_types`, and, for expression-priced models, `billing_mode`, `billing_expr`, `billing_usage_schema`. It also returns `vendors`, `group_ratio`, `usable_group`, `supported_endpoint`, and `auto_groups`. An assistant answering "how much does model X cost on 7Code AI" should read this endpoint rather than repeat any number from a document.
+
+### 6.2 How a price is computed
+
+- Internal accounting uses quota units. 500,000 quota = 1 USD, and a model ratio of 1 corresponds to 0.002 USD per 1,000 tokens. The console can display quota as currency or as raw tokens depending on the operator's display settings.
+- Token-priced models use a ratio: cost is proportional to prompt and completion tokens, with `completion_ratio` scaling output tokens and `cache_ratio` / `create_cache_ratio` pricing cached reads and cache writes separately where the upstream reports them.
+- Fixed-price models charge a flat amount per request regardless of tokens.
+- Expression-priced models (media and other multi-dimensional usage) evaluate a configured expression over the measured usage, so quantities such as generated image count, video seconds, resolution, or audio duration each carry their own weight.
+- Group rate multipliers apply on top: the calling key's group decides the effective multiplier, and the console shows groups and their ratios.
+
+### 6.3 What is metered
+
+Only successful usage is billed. When streaming, the upstream's own final usage report is used. Failures, upstream errors, and requests rejected by the gateway are not charged. Usage logs record the tokens, the model, the channel, and the resulting quota for each request, so any charge can be reconstructed from the account's own logs.
+
+### 6.4 Improving cost efficiency
+
+- Choose a model by price and capability from `/pricing` rather than by defaulting to the largest model.
+- Cached input pricing is reported separately; sending a stable prompt prefix lets upstream prompt caching reduce cost where the provider supports it.
+- Keys can carry their own quota limit, which makes it easy to cap an experiment or a background job.
+
+## 7. Accounts, quota, and payment
+
+- Access requires an account, and API calls require an API key created in that account. Whether sign-up is open, whether email verification is required, and which payment methods are available are operator settings reported by `GET /api/status`.
+- Accounts hold quota (credit). Usage consumes quota; top-ups add it. Redemption codes, where enabled, add quota or subscription time. Subscriptions, where enabled, provide quota or access on a recurring basis.
+- A referral/promotion program can be enabled: invited users' qualifying top-ups credit the inviter a commission, visible in the promotion view of the console.
+- Balance, consumption, and per-request history are all visible in the console (wallet, usage logs, and per-key views).
+
+## 8. Reliability and limits
+
+- **Failover:** a request can be retried on another channel that serves the same model, so a single upstream failure does not surface to the caller.
+- **Load distribution:** channels carry priorities and weights, which spreads traffic and lets an operator drain or prefer a channel without changing clients.
+- **Model mapping:** an operator can map a requested model name onto a specific upstream model, which keeps client-side model names stable across provider changes.
+- **Rate limits:** global, per-user, per-model, and per-key limits can be enforced. A `429` means a limit was hit; retrying after the indicated delay is the correct response.
+- **Timeouts:** long generations legitimately take time. Asynchronous endpoints (video, plugin tasks, Midjourney) exist so that clients poll rather than hold a connection open.
+- **Errors:** error bodies follow the protocol of the called endpoint, with an HTTP status, an error type, and a message. The gateway's own rejections (insufficient quota, invalid key, model not available to the key, rate limit) use the same shape.
+
+## 9. Console features
+
+For users: API key management with per-key restrictions, model catalog and pricing browser, usage logs and audit logs, wallet and top-up, redemption codes, subscriptions, referral/promotion view, playground for trying models, personal settings and security (password, two-factor, passkeys, active sessions), and a multi-language interface.
+
+For administrators: channel and upstream provider management with tests, model and price configuration including the expression-pricing editor, user and group management with per-group rate multipliers, model access control, task-plugin management, announcement and homepage content, site branding and navigation, SEO-related site settings, logging and audit views, and system monitoring/update pages.
+
+## 10. Deployment and operation
+
+The same software can be self-hosted. Deployment-relevant facts, taken from the project's own documentation:
+
+| Component | Options |
+| --- | --- |
+| Main database | SQLite (default, single file), MySQL 5.7.8+, PostgreSQL 9.6+ |
+| Separate log database | Supported via its own DSN, including ClickHouse for high-volume logs |
+| Cache and rate limiting | Optional Redis; required when several application nodes must share rate limits |
+| Containers | Linux amd64 / arm64 images; a Compose configuration ships Postgres and Redis |
+| Extras | A JavaScript task-plugin system for additional asynchronous media APIs, and an Electron desktop wrapper |
+
+Production deployments are expected to run behind HTTPS with a reverse proxy configured for streaming and WebSocket upgrades, with the main database and mounted data persisted and backed up.
+
+## 11. Security posture
+
+- Credentials are stored hashed where they are secrets, and authentication material (passwords, one-time codes, session tokens, keys) is excluded from audit logs.
+- Account protection supports two-factor authentication, WebAuthn/passkeys, and session management with the ability to list and revoke sessions.
+- Login, registration, and password recovery use rate limiting and bot verification, and security-sensitive actions require re-verification.
+- The public interface is the API surface described in this document; administrative functions live behind the console and are not reachable with an API key alone.
+- The hosting operator can disable public modules (pricing, rankings, performance metrics) and can require sign-in for them.
+
+## 12. Machine-readable endpoints
+
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `GET /api/status` | none | Site name, enabled features, display settings, announcement bar, module switches |
+| `GET /api/pricing` | none by default | Model catalog with prices and supported endpoints; the authoritative source for model facts |
+| `GET /api/rankings` | none by default | Usage rankings data |
+| `GET /api/perf-metrics`, `GET /api/perf-metrics/summary` | none by default | Upstream latency and success-rate summaries, where enabled |
+| `GET /api/notice`, `GET /api/about`, `GET /api/home_page_content` | none | Announcement, about content, homepage content |
+| `GET /v1/models`, `GET /v1/models/{model}` | API key | Models available to the calling key |
+| All `/v1`, `/v1beta`, and `/mj` routes | API key | The API surface described above |
+| `/pg/chat/completions` | console session | Internal endpoint backing the console's playground, not part of the public API |
+
+"None by default" means the operator can switch the module off or require sign-in; `/api/status` is always public and reports those switches.
+
+## 13. FAQ
+
+**Is 7Code AI OpenAI-compatible?** Yes. Set the OpenAI SDK base URL to `https://ai.7code.cc/v1` and use a 7Code AI key. Anthropic and Gemini clients are supported the same way on their own base URLs.
+
+**Do I need to change my application code?** Only the base URL and the key. Request and response bodies keep the protocol's own format.
+
+**Which models are available, and what do they cost?** Read `GET /api/pricing`. It is generated from the live configuration, so it is more accurate than any static list, including this document.
+
+**How is usage billed?** By measured usage: token ratios for text models, fixed per-request prices for some models, and expression-based pricing for media where the billable quantity is not tokens (images, seconds, resolution). Cached input can be priced separately. See section 6.
+
+**What happens if an upstream provider is down?** Requests are retried on other channels serving the same model, so a single provider's outage need not interrupt service.
+
+**Is there a free trial?** Quota, sign-up bonuses, and promotions are operator settings. Check the console and `GET /api/status` for the current situation.
+
+**Can I self-host this?** The underlying gateway is open source and self-hostable with SQLite, MySQL, or PostgreSQL, optional Redis, and Docker images for amd64/arm64. See section 10 and the project repository.
+
+**How do I report a problem with a specific request?** Usage logs identify the request, model, channel, and resulting charge; that set of fields is what an operator needs to investigate.
+
+## 14. Attribution and license
+
+This deployment runs the New API gateway (https://github.com/QuantumNous/new-api), an open-source project licensed under the AGPL v3.0, itself based on One API by JustSong. Model names, provider names, and trademarks belong to their respective owners; 7Code AI provides access to upstream models and is not affiliated with or endorsed by those providers.
+
+## 15. Links
+
+- Home: https://ai.7code.cc/
+- Model catalog and pricing: https://ai.7code.cc/pricing
+- Usage rankings: https://ai.7code.cc/rankings
+- About: https://ai.7code.cc/about
+- Concise index for AI assistants: https://ai.7code.cc/llms.txt
+- Privacy policy: https://ai.7code.cc/privacy-policy
+- User agreement: https://ai.7code.cc/user-agreement

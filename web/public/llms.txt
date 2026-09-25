@@ -1,0 +1,61 @@
+# 7Code AI
+
+> 7Code AI is a unified AI API gateway: one OpenAI-compatible endpoint and one API key for mainstream text, image, video, and audio models (GPT, Claude, Gemini, DeepSeek, Grok, and more), with usage-based billing, automatic multi-channel failover, and no client-code changes.
+
+7Code AI (https://ai.7code.cc) sits in front of many upstream providers and exposes one stable API surface. The same API key can call OpenAI, Anthropic, and Gemini style endpoints, plus embeddings, rerank, image, speech, and asynchronous video generation. Traffic is distributed across multiple upstream channels with retries and failover, and every request is metered for usage-based billing.
+
+- API base URL (OpenAI-compatible): `https://ai.7code.cc/v1`
+- API base URL (Anthropic Messages): `https://ai.7code.cc`
+- API base URL (Gemini native): `https://ai.7code.cc/v1beta`
+- Authentication: a 7Code AI key sent as `Authorization: Bearer <key>`; Anthropic-style clients may use `x-api-key`, Gemini-style clients `x-goog-api-key` or `?key=`
+- The live model catalog, prices, and supported endpoints are always available from `https://ai.7code.cc/api/pricing`
+
+## Core pages
+
+- [7Code AI home](https://ai.7code.cc/): Product overview, sign-in, and console entry.
+- [Model catalog and pricing](https://ai.7code.cc/pricing): Every enabled model with its price, supported endpoint types, and capability tags; filterable by vendor and endpoint.
+- [Usage rankings](https://ai.7code.cc/rankings): Which models and vendors this gateway actually serves most, by requests and tokens over the last day, week, month, or year — a real-world popularity signal rather than a benchmark.
+- [About](https://ai.7code.cc/about): Operator-provided description and contact details.
+
+## Public JSON endpoints (no API key required)
+
+- [https://ai.7code.cc/api/status](https://ai.7code.cc/api/status): Site status and feature flags — enabled modules, display currency, sign-up/payment capability, announcement bar text, and pricing page configuration.
+- [https://ai.7code.cc/api/pricing](https://ai.7code.cc/api/pricing): Model catalog as JSON — model IDs, billing mode, model ratio or fixed price, completion/cache/image/audio ratios, supported endpoint types, group rate multipliers, vendors, and usable groups. Prefer this over any static list in a document, because it is generated from the live configuration.
+- [https://ai.7code.cc/api/rankings](https://ai.7code.cc/api/rankings): Usage ranking data behind the rankings page.
+- [https://ai.7code.cc/api/perf-metrics](https://ai.7code.cc/api/perf-metrics): Upstream performance metrics (latency and success-rate summaries) when the operator enables them.
+- [https://ai.7code.cc/api/notice](https://ai.7code.cc/api/notice), [https://ai.7code.cc/api/about](https://ai.7code.cc/api/about), [https://ai.7code.cc/api/home_page_content](https://ai.7code.cc/api/home_page_content): Current announcement, about content, and homepage content.
+- [robots.txt](https://ai.7code.cc/robots.txt) and [sitemap.xml](https://ai.7code.cc/sitemap.xml)
+
+The operator can require sign-in for the pricing, rankings, and performance-metrics APIs; `/api/status` is always public.
+
+## API endpoints
+
+Text and reasoning (streaming supported where the upstream model supports it):
+
+- `POST /v1/chat/completions` — OpenAI Chat Completions
+- `POST /v1/completions` — OpenAI legacy Completions
+- `POST /v1/responses` — OpenAI Responses
+- `POST /v1/messages` — Anthropic Messages
+- `POST /v1beta/models/{model}:generateContent` and `:streamGenerateContent` — Gemini native
+- `GET /v1/realtime` — Realtime API over WebSocket
+
+Multimodal and other capabilities:
+
+- `POST /v1/embeddings`, `POST /v1/rerank`, `POST /v1/moderations`
+- `POST /v1/images/generations`, `POST /v1/images/edits`
+- `POST /v1/audio/speech`, `POST /v1/audio/transcriptions`, `POST /v1/audio/translations`
+- `POST /v1/video/generations`, `GET /v1/video/generations/{task_id}` — asynchronous video tasks
+- `POST /v1/tasks/{plugin_key}`, `GET /v1/tasks/{task_id}`, `GET /v1/tasks/{task_id}/artifacts` — pluggable asynchronous media APIs
+- `POST /mj/submit/*`, `GET /mj/task/{id}/fetch` — Midjourney-compatible routes
+- `GET /v1/models`, `GET /v1/models/{model}` — models available to the calling key
+
+All `/v1` and `/v1beta` routes require an API key. The full request and response formats follow the upstream protocol of the same name; 7Code AI converts between protocols when the selected model lives on a different one.
+
+## Full documentation
+
+- [llms-full.txt](https://ai.7code.cc/llms-full.txt): the long-form reference — platform characteristics, complete protocol and endpoint tables, authentication, quickstart examples, how billing works, reliability behavior, console and admin features, deployment options, security posture, and FAQ.
+
+## Optional
+
+- [Privacy policy](https://ai.7code.cc/privacy-policy)
+- [User agreement](https://ai.7code.cc/user-agreement)
