@@ -36,6 +36,7 @@ import {
   Ticket,
   User,
   Users,
+  UsersRound,
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -109,6 +110,11 @@ export function useSidebarData(): SidebarData {
             activeUrls: ['/usage-logs/drawing'],
             configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
             icon: ListTodo,
+          },
+          {
+            title: t('Sub Users'),
+            url: '/sub-users',
+            icon: UsersRound,
           },
         ],
       },

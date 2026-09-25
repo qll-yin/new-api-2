@@ -48,6 +48,7 @@ import { Route as AuthenticatedPromotionIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedPromotionRecordsRouteImport } from './routes/_authenticated/promotion/records'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authenticated/security/index'
+import { Route as AuthenticatedSubUsersIndexRouteImport } from './routes/_authenticated/sub-users/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
@@ -281,6 +282,12 @@ const AuthenticatedSecurityIndexRoute =
     path: '/security/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSubUsersIndexRoute =
+  AuthenticatedSubUsersIndexRouteImport.update({
+    id: '/sub-users/',
+    path: '/sub-users/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSubscriptionsIndexRoute =
   AuthenticatedSubscriptionsIndexRouteImport.update({
     id: '/subscriptions/',
@@ -476,6 +483,7 @@ export interface FileRoutesByFullPath {
   '/promotion/': typeof AuthenticatedPromotionIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/security/': typeof AuthenticatedSecurityIndexRoute
+  '/sub-users/': typeof AuthenticatedSubUsersIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -540,6 +548,7 @@ export interface FileRoutesByTo {
   '/promotion': typeof AuthenticatedPromotionIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/security': typeof AuthenticatedSecurityIndexRoute
+  '/sub-users': typeof AuthenticatedSubUsersIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
@@ -608,6 +617,7 @@ export interface FileRoutesById {
   '/_authenticated/promotion/': typeof AuthenticatedPromotionIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/security/': typeof AuthenticatedSecurityIndexRoute
+  '/_authenticated/sub-users/': typeof AuthenticatedSubUsersIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -675,6 +685,7 @@ export interface FileRouteTypes {
     | '/promotion/'
     | '/redemption-codes/'
     | '/security/'
+    | '/sub-users/'
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
@@ -739,6 +750,7 @@ export interface FileRouteTypes {
     | '/promotion'
     | '/redemption-codes'
     | '/security'
+    | '/sub-users'
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
@@ -806,6 +818,7 @@ export interface FileRouteTypes {
     | '/_authenticated/promotion/'
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/security/'
+    | '/_authenticated/sub-users/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
@@ -1126,6 +1139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSecurityIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sub-users/': {
+      id: '/_authenticated/sub-users/'
+      path: '/sub-users'
+      fullPath: '/sub-users/'
+      preLoaderRoute: typeof AuthenticatedSubUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/subscriptions/': {
       id: '/_authenticated/subscriptions/'
       path: '/subscriptions'
@@ -1419,6 +1439,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPromotionIndexRoute: typeof AuthenticatedPromotionIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedSecurityIndexRoute: typeof AuthenticatedSecurityIndexRoute
+  AuthenticatedSubUsersIndexRoute: typeof AuthenticatedSubUsersIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
   AuthenticatedTaskPluginsIndexRoute: typeof AuthenticatedTaskPluginsIndexRoute
@@ -1448,6 +1469,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
   AuthenticatedSecurityIndexRoute: AuthenticatedSecurityIndexRoute,
+  AuthenticatedSubUsersIndexRoute: AuthenticatedSubUsersIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
   AuthenticatedTaskPluginsIndexRoute: AuthenticatedTaskPluginsIndexRoute,

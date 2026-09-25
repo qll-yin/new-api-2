@@ -122,6 +122,10 @@ export function SidebarModulesSection({
         title: t('Task logs'),
         description: t('Background job tracker for queued work.'),
       },
+      sub_user: {
+        title: t('Sub Users'),
+        description: t('Manage sub-users (virtual users backed by tokens).'),
+      },
     },
     personal: {
       topup: {

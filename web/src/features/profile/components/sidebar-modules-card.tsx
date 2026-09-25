@@ -90,6 +90,11 @@ export function SidebarModulesCard() {
           description: t('API token management'),
         },
         {
+          key: 'sub_user',
+          title: t('Sub Users'),
+          description: t('Sub-user (virtual user) management'),
+        },
+        {
           key: 'log',
           title: t('Usage Logs'),
           description: t('API usage records'),
