@@ -41,6 +41,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Combobox } from '@/components/ui/combobox'
 import {
   Form,
   FormControl,
@@ -62,9 +63,9 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { getTokenAutoGroups } from '@/features/keys/api'
 import { ApiKeyGroupCombobox } from '@/features/keys/components/api-key-group-combobox'
 import { AutoGroupOrderEditor } from '@/features/keys/components/auto-group-order-editor'
-import { getTokenAutoGroups } from '@/features/keys/api'
 import { RelatedPolicyLink } from '@/features/system-settings/request-policies/related-policy-link'
 import { useStatus } from '@/hooks/use-status'
 import { getUserModels, getUserGroups } from '@/lib/api'
@@ -74,7 +75,11 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 import { createSubUser, getSubUserGroups, updateSubUser } from '../api'
-import { ERROR_MESSAGES, SUCCESS_MESSAGES, UNGROUPED_SUB_GROUP_ID } from '../constants'
+import {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  UNGROUPED_SUB_GROUP_ID,
+} from '../constants'
 import {
   getSubUserFormSchema,
   type SubUserFormValues,
@@ -403,12 +408,15 @@ export function SubUsersMutateDrawer({
                   <FormItem>
                     <FormLabel>{t('Sub-user Group')}</FormLabel>
                     <FormControl>
-                      <ApiKeyGroupCombobox
+                      <Combobox
                         options={subGroupOptions}
                         value={String(field.value ?? UNGROUPED_SUB_GROUP_ID)}
                         onValueChange={(value) =>
-                          field.onChange(Number(value))
+                          field.onChange(
+                            Number(value ?? UNGROUPED_SUB_GROUP_ID)
+                          )
                         }
+                        className='w-full'
                         placeholder={t('Select a group')}
                       />
                     </FormControl>
@@ -448,9 +456,7 @@ export function SubUsersMutateDrawer({
                       />
                     </FormControl>
                     <FormDescription>
-                      {t(
-                        'Token group used when the sub-user sends requests.'
-                      )}
+                      {t('Token group used when the sub-user sends requests.')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -744,9 +750,7 @@ export function SubUsersMutateDrawer({
                     <Textarea
                       {...field}
                       className='min-h-20 resize-none'
-                      placeholder={t(
-                        'e.g. For Zhang San, quota 1000'
-                      )}
+                      placeholder={t('e.g. For Zhang San, quota 1000')}
                       rows={3}
                     />
                   </FormControl>

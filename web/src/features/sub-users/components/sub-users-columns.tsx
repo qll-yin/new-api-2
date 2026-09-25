@@ -18,12 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
-import { useMediaQuery } from '@/hooks'
-import { toIntlLocale } from '@/i18n/languages'
 import { ApiKeyGroupCell } from '@/features/keys/components/api-key-group-cell'
 import { ApiKeyQuotaCell } from '@/features/keys/components/api-key-quota-cell'
 import {
@@ -34,9 +31,9 @@ import {
   IpRestrictionsCell,
   ModelLimitsCell,
 } from '@/features/keys/components/api-keys-cells'
-import {
-  API_KEY_STATUSES,
-} from '@/features/keys/constants'
+import { API_KEY_STATUSES } from '@/features/keys/constants'
+import { useMediaQuery } from '@/hooks'
+import { toIntlLocale } from '@/i18n/languages'
 import { getUserGroups } from '@/lib/api'
 import { getCurrencyDisplay } from '@/lib/currency'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -73,7 +70,9 @@ type SubUsersColumnsParams = {
   groupNameById: Record<number, string>
 }
 
-export function useSubUsersColumns(params: SubUsersColumnsParams): ColumnDef<SubUser>[] {
+export function useSubUsersColumns(
+  params: SubUsersColumnsParams
+): ColumnDef<SubUser>[] {
   const { now, groupNameById } = params
   const { t, i18n } = useTranslation()
   useSystemConfigStore((state) => state.config.currency)
@@ -83,174 +82,165 @@ export function useSubUsersColumns(params: SubUsersColumnsParams): ColumnDef<Sub
   const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
-  return useMemo<ColumnDef<SubUser>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: t('Name'),
-        cell: ({ row }) => (
-          <span className='font-medium'>{row.getValue('name')}</span>
-        ),
-        size: 160,
-        meta: { mobileTitle: true },
+  // 与兑换码列一致：每渲染返回新数组。若 memo 化，TanStack 会复用 Column
+  // 实例，React.memo 的筛选下拉拿不到新 column prop，勾选态会延迟/卡死。
+  return [
+    {
+      accessorKey: 'name',
+      header: t('Name'),
+      cell: ({ row }) => (
+        <span className='font-medium'>{row.getValue('name')}</span>
+      ),
+      size: 160,
+      meta: { mobileTitle: true },
+    },
+    {
+      accessorKey: 'status',
+      header: t('Status'),
+      cell: ({ row }) => {
+        const statusConfig = API_KEY_STATUSES[row.getValue('status') as number]
+        if (!statusConfig) return null
+        return (
+          <StatusBadge
+            label={t(statusConfig.label)}
+            variant={statusConfig.variant}
+            copyable={false}
+            className='-ml-1.5'
+          />
+        )
       },
-      {
-        accessorKey: 'status',
-        header: t('Status'),
-        cell: ({ row }) => {
-          const statusConfig =
-            API_KEY_STATUSES[row.getValue('status') as number]
-          if (!statusConfig) return null
+      filterFn: (row, id, value) => value.includes(String(row.getValue(id))),
+      size: 110,
+      meta: { mobileBadge: true },
+    },
+    {
+      id: 'key',
+      accessorKey: 'key',
+      header: t('Token'),
+      cell: ({ row }) => <SubUserKeyCell subUser={row.original} />,
+      enableSorting: false,
+      size: 240,
+    },
+    {
+      id: 'quota',
+      accessorKey: 'remain_quota',
+      header: `${t('Quota')} (${quotaUnit})`,
+      cell: ({ row }) => <ApiKeyQuotaCell apiKey={row.original} now={now} />,
+      size: 240,
+      minSize: 240,
+    },
+    {
+      accessorKey: 'group',
+      header: t('Group'),
+      cell: ({ row }) => {
+        const subUser = row.original
+        const group = row.getValue('group') as string
+        return (
+          <ApiKeyGroupCell
+            group={group}
+            ratio={groupRatios[group]}
+            crossGroupRetry={subUser.cross_group_retry}
+            shouldReduceMotion={shouldReduceMotion}
+          />
+        )
+      },
+      size: 180,
+      meta: { mobileHidden: true },
+    },
+    {
+      accessorKey: 'sub_group_id',
+      header: t('Sub-user Group'),
+      cell: ({ row }) => {
+        const groupId = row.getValue('sub_group_id') as number
+        if (!groupId) {
+          return <span className='text-muted-foreground'>{t('Ungrouped')}</span>
+        }
+        return <span>{groupNameById[groupId] ?? t('Ungrouped')}</span>
+      },
+      filterFn: (row, id, value) =>
+        value.includes(String(row.getValue(id) ?? 0)),
+      size: 140,
+      meta: { mobileHidden: true },
+    },
+    {
+      accessorKey: 'sub_note',
+      header: t('Note'),
+      cell: ({ row }) => {
+        const note = (row.getValue('sub_note') as string) || ''
+        if (!note) return <span className='text-muted-foreground'>-</span>
+        return (
+          <span className='block max-w-48 truncate' title={note}>
+            {note}
+          </span>
+        )
+      },
+      enableSorting: false,
+      size: 160,
+      meta: { mobileHidden: true },
+    },
+    {
+      id: 'model_limits',
+      accessorKey: 'model_limits',
+      header: t('Models'),
+      cell: ({ row }) => <ModelLimitsCell apiKey={row.original} />,
+      enableSorting: false,
+      size: 140,
+      meta: { mobileHidden: true },
+    },
+    {
+      id: 'allow_ips',
+      accessorKey: 'allow_ips',
+      header: t('IP Restriction'),
+      cell: ({ row }) => <IpRestrictionsCell apiKey={row.original} />,
+      enableSorting: false,
+      size: 140,
+      meta: { mobileHidden: true },
+    },
+    {
+      id: 'activity_time',
+      accessorKey: 'created_time',
+      header: t('Time'),
+      cell: ({ row }) => <ApiKeyActivityCell apiKey={row.original} now={now} />,
+      size: 200,
+      meta: { mobileHidden: true },
+    },
+    {
+      accessorKey: 'expired_time',
+      header: t('Expires'),
+      cell: ({ row }) => {
+        const expiredTime = row.getValue('expired_time') as number
+        if (expiredTime === -1) {
           return (
             <StatusBadge
-              label={t(statusConfig.label)}
-              variant={statusConfig.variant}
+              label={t('Never')}
+              variant='neutral'
               copyable={false}
               className='-ml-1.5'
             />
           )
-        },
-        filterFn: (row, id, value) => value.includes(String(row.getValue(id))),
-        size: 110,
-        meta: { mobileBadge: true },
+        }
+        return (
+          <ApiKeyTimestampCell
+            timestamp={expiredTime}
+            now={now}
+            locale={locale}
+            justNowLabel={justNowLabel}
+            className={
+              expiredTime * 1000 <= now
+                ? 'text-destructive'
+                : 'text-muted-foreground'
+            }
+          />
+        )
       },
-      {
-        id: 'key',
-        accessorKey: 'key',
-        header: t('Token'),
-        cell: ({ row }) => <SubUserKeyCell subUser={row.original} />,
-        enableSorting: false,
-        size: 240,
-      },
-      {
-        id: 'quota',
-        accessorKey: 'remain_quota',
-        header: `${t('Quota')} (${quotaUnit})`,
-        cell: ({ row }) => <ApiKeyQuotaCell apiKey={row.original} now={now} />,
-        size: 240,
-        minSize: 240,
-      },
-      {
-        accessorKey: 'group',
-        header: t('Group'),
-        cell: ({ row }) => {
-          const subUser = row.original
-          const group = row.getValue('group') as string
-          return (
-            <ApiKeyGroupCell
-              group={group}
-              ratio={groupRatios[group]}
-              crossGroupRetry={subUser.cross_group_retry}
-              shouldReduceMotion={shouldReduceMotion}
-            />
-          )
-        },
-        size: 180,
-        meta: { mobileHidden: true },
-      },
-      {
-        accessorKey: 'sub_group_id',
-        header: t('Sub-user Group'),
-        cell: ({ row }) => {
-          const groupId = row.getValue('sub_group_id') as number
-          if (!groupId) {
-            return (
-              <span className='text-muted-foreground'>
-                {t('Ungrouped')}
-              </span>
-            )
-          }
-          return <span>{groupNameById[groupId] ?? t('Ungrouped')}</span>
-        },
-        filterFn: (row, id, value) =>
-          value.includes(String(row.getValue(id) ?? 0)),
-        size: 140,
-        meta: { mobileHidden: true },
-      },
-      {
-        accessorKey: 'sub_note',
-        header: t('Note'),
-        cell: ({ row }) => {
-          const note = (row.getValue('sub_note') as string) || ''
-          if (!note) return <span className='text-muted-foreground'>-</span>
-          return (
-            <span className='block max-w-48 truncate' title={note}>
-              {note}
-            </span>
-          )
-        },
-        enableSorting: false,
-        size: 160,
-        meta: { mobileHidden: true },
-      },
-      {
-        id: 'model_limits',
-        accessorKey: 'model_limits',
-        header: t('Models'),
-        cell: ({ row }) => <ModelLimitsCell apiKey={row.original} />,
-        enableSorting: false,
-        size: 140,
-        meta: { mobileHidden: true },
-      },
-      {
-        id: 'allow_ips',
-        accessorKey: 'allow_ips',
-        header: t('IP Restriction'),
-        cell: ({ row }) => <IpRestrictionsCell apiKey={row.original} />,
-        enableSorting: false,
-        size: 140,
-        meta: { mobileHidden: true },
-      },
-      {
-        id: 'activity_time',
-        accessorKey: 'created_time',
-        header: t('Time'),
-        cell: ({ row }) => (
-          <ApiKeyActivityCell apiKey={row.original} now={now} />
-        ),
-        size: 200,
-        meta: { mobileHidden: true },
-      },
-      {
-        accessorKey: 'expired_time',
-        header: t('Expires'),
-        cell: ({ row }) => {
-          const expiredTime = row.getValue('expired_time') as number
-          if (expiredTime === -1) {
-            return (
-              <StatusBadge
-                label={t('Never')}
-                variant='neutral'
-                copyable={false}
-                className='-ml-1.5'
-              />
-            )
-          }
-          return (
-            <ApiKeyTimestampCell
-              timestamp={expiredTime}
-              now={now}
-              locale={locale}
-              justNowLabel={justNowLabel}
-              className={
-                expiredTime * 1000 <= now
-                  ? 'text-destructive'
-                  : 'text-muted-foreground'
-              }
-            />
-          )
-        },
-        size: 170,
-        meta: { mobileHidden: true },
-      },
-      {
-        id: 'actions',
-        header: () => t('Actions'),
-        cell: ({ row }) => <SubUsersRowActions row={row} />,
-        meta: { pinned: 'right' as const },
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, quotaUnit, now, groupRatios, shouldReduceMotion, locale, justNowLabel, groupNameById]
-  )
+      size: 170,
+      meta: { mobileHidden: true },
+    },
+    {
+      id: 'actions',
+      header: () => t('Actions'),
+      cell: ({ row }) => <SubUsersRowActions row={row} />,
+      meta: { pinned: 'right' as const },
+    },
+  ]
 }
