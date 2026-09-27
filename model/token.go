@@ -108,10 +108,11 @@ func (token *Token) GetIpLimits() []string {
 
 // GetUserApiTokens 返回用户名下的普通 API 令牌（排除子用户令牌），用于「API 密钥」页；
 // 子用户令牌由子用户管理接口（GetUserSubUsers）单独读取。
+// 排除条件用 IS NOT TRUE 而非 = false：升级前已存在的令牌行 is_sub_user 为 NULL
+// （AutoMigrate 加列不回填旧行），NULL 与任何值比较都不成立，= false 会把旧令牌全部隐藏。
 func GetUserApiTokens(userId int, startIdx int, num int) ([]*Token, error) {
 	var tokens []*Token
-	var err error
-	err = DB.Where("user_id = ? AND is_sub_user = ?", userId, false).
+	err := DB.Where("user_id = ? AND is_sub_user IS NOT TRUE", userId).
 		Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
 	return tokens, err
 }
@@ -120,8 +121,14 @@ func GetUserApiTokens(userId int, startIdx int, num int) ([]*Token, error) {
 // 供「API 密钥」页分页总数使用；令牌数量上限校验请用包含子用户的 CountUserTokens。
 func CountUserApiTokens(userId int) (int64, error) {
 	var total int64
-	err := DB.Model(&Token{}).Where("user_id = ? AND is_sub_user = ?", userId, false).Count(&total).Error
+	err := DB.Model(&Token{}).Where("user_id = ? AND is_sub_user IS NOT TRUE", userId).Count(&total).Error
 	return total, err
+}
+
+// InitializeTokenSubUserFlags 把升级前存量令牌的 NULL is_sub_user 回填为 false，
+// 修复「API 密钥」页误隐藏旧令牌。幂等，须在 AutoMigrate 之后调用，兼容全支持数据库。
+func InitializeTokenSubUserFlags() error {
+	return DB.Model(&Token{}).Where("is_sub_user IS NULL").Update("is_sub_user", false).Error
 }
 
 // sanitizeLikePattern 校验并清洗用户输入的 LIKE 搜索模式。
@@ -197,8 +204,9 @@ func SearchUserTokens(userId int, keyword string, token string, offset int, limi
 		}
 	}
 
-	// SearchUserTokens 服务于「API 密钥」页，排除子用户令牌（子用户搜索走 SearchUserSubUsers）
-	baseQuery := DB.Model(&Token{}).Where("user_id = ? AND is_sub_user = ?", userId, false)
+	// SearchUserTokens 服务于「API 密钥」页，排除子用户令牌（子用户搜索走 SearchUserSubUsers）；
+	// IS NOT TRUE 兼容升级前 is_sub_user 为 NULL 的存量行，理由同 GetUserApiTokens
+	baseQuery := DB.Model(&Token{}).Where("user_id = ? AND is_sub_user IS NOT TRUE", userId)
 
 	// 非空才加 LIKE 条件，空则跳过（不过滤该字段）
 	if keyword != "" {

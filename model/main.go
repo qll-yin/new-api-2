@@ -379,6 +379,9 @@ func migrateDB() error {
 	if err := InitializeUserAuthVersions(); err != nil {
 		return err
 	}
+	if err := InitializeTokenSubUserFlags(); err != nil {
+		return err
+	}
 	if err := InitializeExternalIdentityClaims(); err != nil {
 		return err
 	}

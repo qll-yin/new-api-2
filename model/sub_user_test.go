@@ -126,6 +126,57 @@ func TestSubUserQueries(t *testing.T) {
 	assert.False(t, exists)
 }
 
+// 升级兼容：AutoMigrate 给存量 tokens 行新加的 is_sub_user 列是 NULL，
+// NULL = false 不成立，曾导致「API 密钥」页把升级前的旧令牌全部隐藏。
+func TestLegacyTokenNullSubUserFlag(t *testing.T) {
+	createTestSubUserFixture(t)
+
+	// 模拟升级前的存量令牌行（不经 GORM 插入，is_sub_user 保持 NULL）
+	require.NoError(t, DB.Exec(
+		"INSERT INTO tokens (user_id, name, "+commonKeyCol+", status) VALUES (7, 'legacy-key', 'legacy-key-1', 1)",
+	).Error)
+
+	// 子用户查询不能命中 NULL 行
+	subs, err := GetUserSubUsers(7, 0, 10)
+	require.NoError(t, err)
+	assert.Empty(t, subs)
+	subCount, err := CountUserSubUsers(7)
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, subCount)
+
+	// 「API 密钥」页三个入口必须照常看到旧令牌
+	apiTokens, err := GetUserApiTokens(7, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, apiTokens, 1)
+	assert.Equal(t, "legacy-key", apiTokens[0].Name)
+
+	apiCount, err := CountUserApiTokens(7)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, apiCount)
+
+	found, total, err := SearchUserTokens(7, "legacy-key", "", 0, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	require.Len(t, found, 1)
+
+	// 上限校验统计的令牌总数包含 NULL 行
+	allCount, err := CountUserTokens(7)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, allCount)
+
+	// 启动回填把 NULL 归位为 false，重复执行幂等，回填后 keys 页仍可见
+	require.NoError(t, InitializeTokenSubUserFlags())
+	require.NoError(t, InitializeTokenSubUserFlags())
+	var legacy Token
+	require.NoError(t, DB.Where("name = ?", "legacy-key").First(&legacy).Error)
+	assert.False(t, legacy.IsSubUser)
+	assert.Empty(t, legacy.SubNote)
+	assert.Equal(t, 0, legacy.SubGroupId)
+	apiTokens, err = GetUserApiTokens(7, 0, 10)
+	require.NoError(t, err)
+	assert.Len(t, apiTokens, 1)
+}
+
 func TestUpdateSubUserFields(t *testing.T) {
 	createTestSubUserFixture(t)
 
