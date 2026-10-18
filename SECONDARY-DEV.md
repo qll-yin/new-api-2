@@ -322,13 +322,18 @@
    - `model/main.go`（`migrateDB` 尾部双方都加初始化调用：我方 `InitializeTokenSubUserFlags`、上游 `EnsureLegacyAccessTokenRetireAt`，冲突时取并集；rc.41 起上游新增 `UserAccessToken` 表）
    - `model/task.go`、`service/task_polling.go`（上游新增 `ResultDiscarded`/`ResultRetrievable` 与列表接口 `Omit("data")`；**必须确认 `GetByTaskId` 仍未 `Omit("data")`**，否则视频直链提取会退化为站内 /content 代理地址）
    - `web/src/features/system-settings/general/quota-settings-section.tsx`（上游删 `PreConsumedQuota`、加 `quota_setting.trust_quota_usd` / `pre_consume_multiplier`，我方在同一 schema 与表单里加推广分成两项，合并取并集）
+   - `controller/sub_user.go`、`controller/option.go`（rc.45 起上游删除大量 `i18n.Msg*` 常量并改用 `common.ApiErrorT`；我方新增提示必须用 ApiErrorT，合并后 grep `i18n.Msg` 确认无残留）
+   - `model/promotion_commission.go`（rc.45 起 `RecordLog` 改收 `*common.Message`，佣金日志用 `common.NewMessage`）
+   - `setting/console_setting/validation.go`（rc.45 起 URL/内容校验改用 `itemMessages` 结构体；我方自定义导航校验使用 `customNavMessages`，勿再传字符串）
+   - `web/src/components/compact-date-time-range-picker.tsx`（我方已把组件移到共享目录；上游新增文件仍可能引用旧相对路径，合并后需改指 `@/components/compact-date-time-range-picker`）
 2. **工厂插件（`plugins/tasks/*/plugin.js`）不改**：视频直链等定制一律在宿主 Go 层做，避免与上游插件更新冲突（wan3.0 等上游新模型直接吃上游更新）。
 3. **locale 只能通过脚本写**：`web/scripts/` 下临时脚本 + `bun run i18n:sync`，键为英文源串，7 语言文件必须同步。
    - 合并时语言文件必冲突，按「冲突块内并集」解：块内先我方后上游、仅在同一冲突块内部按整行文本去重。**不要跨块按同名键去重**——语言文件是 `{translation, homepage}` 双命名空间，顶层键与 `homepage` 内键同名同缩进（如 `Models`），跨块去重会误删 homepage 的键并导致 TS 报「Property 'Models' does not exist」。
-4. **上游新增测试的 fixture 要补我方字段**：`web/src/features/system-settings/general/__tests__/pre-consume-settings.test.tsx` 构造 `QuotaSettingsSection` 的 props 时需带 `PromotionCommissionEnabled: false` / `PromotionCommissionRate: 0`；`web/src/features/wallet/__tests__/copy.test.tsx`（rc.41 新增）构造 `RechargeFormCard` 的 `topupInfo` 时需带 `bonus: {}`。否则 `bun run typecheck` 报缺属性（上游每次改这些测试都要顺手补）。
+4. **上游新增测试的 fixture 要补我方字段**：`web/src/features/system-settings/general/__tests__/pre-consume-settings.test.tsx` 构造 `QuotaSettingsSection` 的 props 时需带 `PromotionCommissionEnabled: false` / `PromotionCommissionRate: 0`；`web/src/features/wallet/__tests__/copy.test.tsx`（rc.41 新增）构造 `RechargeFormCard` 的 `topupInfo` 时需带 `bonus: {}`；`web/src/features/sub-users/lib/__tests__/sub-user-form.test.ts`（rc.45 上游 Token 类型新增字段）需带 `allow_user_quota_query: false`。否则 `bun run typecheck` 报缺属性（上游每次改这些测试都要顺手补）。
 5. **`web/src/features/wallet/components/recharge-form-card.tsx`**（我方充值赠送展示 + 上游 rc.41 把折扣文案改成 `Trans`/`t()` i18n）：冲突时保留我方 bonus 优先分支，非 bonus 分支用上游的 `Trans` 结构与 `getDiscountLabel(discount, t)` 双参签名。
 6. **合并后必做验证**：`go build ./...`；`go test ./model/ ./relay/... ./plugins/ ./controller/ ./service/`；`cd relaykit && GOWORK=off go build ./...`；前端 `bun run typecheck` + `bun run build`（构建才能暴露相对路径断裂类问题）。
 7. **数据库**：schema 变更仅在真实 SQLite 上验证（用户约定）；上游合入含迁移改动时，启动前备份 SQLite 库文件。
+8. **上游 API 迁移（rc.45 起）**：`i18n.Msg*` 常量大量删除，后端提示改用 `common.ApiErrorT(c, "English source", params)`；`RecordLog` 改为接收 `*common.Message`（用 `common.NewMessage`）；`console_setting` 的 URL/内容校验改为 `itemMessages` 结构体。合并后 `go build ./...` 会直接暴露这些点；二开新增代码一律用新 API，勿再引用 `i18n.Msg*`。
 
 ---
 
@@ -374,3 +379,5 @@
 | `b4c8b6895` | 子用户筛选勾选态修复：列定义去 useMemo（memo 化会让 TanStack 复用 Column 实例 + React.memo 的筛选下拉冻结勾选，须等 now 跳动才刷新）；抽屉子用户分组改用共享 ui/combobox（标准尺寸） |
 | `6d7bc56cb` | 子用户升级兼容修复：AutoMigrate 加 is_sub_user 列后旧行为 NULL，keys 页 `= false` 匹配不上 NULL 导致旧令牌全部隐藏；排除谓词改 NULL 安全的 `IS NOT TRUE` + migrateDB 增 `InitializeTokenSubUserFlags` 幂等回填，含 NULL 旧行回归测试 |
 | `e4f1e2e94` | 合并上游 main v1.0.0-rc.41（22 提交）。冲突 4 组：model/main.go 初始化调用取并集（我方 `InitializeTokenSubUserFlags` + 上游 `EnsureLegacyAccessTokenRetireAt`）、task_cas_test.go 清场 DELETE 取并集、recharge-form-card.tsx 我方 bonus 展示叠加到上游 Trans i18n 结构、7 locale 冲突块内并集。上游新增 `UserAccessToken` 独立表（面板访问令牌重构）与我方 tokens 打标方案零冲突；`model/token.go`、`controller/token.go` 上游未动。上游新测试 copy.test.tsx fixture 补我方 `bonus` 字段 |
+| `6bcc5f7dd` | 合并前本地版本号更新（v1.0.0-rc.41.1） |
+| `6e0d881fb` | 合并上游 main v1.0.0-rc.45（rc.42/rc.43/rc.44/rc.45，100 提交，663 文件）。冲突 11 文件：model/option.go 并集、model/topup.go 五个支付渠道保留上游 LogText + 我方分成块、时间选择器保留我方共享路径/emptyLabel 并采用上游秒级精度与 step、common-logs-filter-bar.tsx 并集、7 locale 块内并集。自动合并区适配上游 API 变更：i18n 常量迁移（sub_user/option → ApiErrorT）、RecordLog → NewMessage、console_setting → itemMessages、export-logs-dialog 旧路径改 `@/components`、子用户测试 fixture 补 `allow_user_quota_query`；补齐 4 个新语言键 ×7。SQLite 双启 schema 哈希一致 |
