@@ -9,7 +9,6 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
@@ -54,17 +53,17 @@ func SearchSubUsers(c *gin.Context) {
 // validateSubUserRequest 校验子用户请求中的名称长度/额度/备注/子用户分组，失败时已写响应并返回 false。
 func validateSubUserRequest(c *gin.Context, token *model.Token, userId int) bool {
 	if utf8.RuneCountInString(token.Name) > 50 {
-		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
+		common.ApiErrorT(c, "Token name is too long")
 		return false
 	}
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
-			common.ApiErrorI18n(c, i18n.MsgTokenQuotaNegative)
+			common.ApiErrorT(c, "Quota value cannot be negative")
 			return false
 		}
 		maxQuotaValue := maxTokenQuota()
 		if token.RemainQuota > maxQuotaValue {
-			common.ApiErrorI18n(c, i18n.MsgTokenQuotaExceedMax, map[string]any{"Max": maxQuotaValue})
+			common.ApiErrorT(c, "Quota value exceeds valid range, maximum is {{max}}", map[string]any{"max": maxQuotaValue})
 			return false
 		}
 	}
@@ -144,7 +143,7 @@ func AddSubUser(c *gin.Context) {
 	}
 	key, err := common.GenerateKey()
 	if err != nil {
-		common.ApiErrorI18n(c, i18n.MsgTokenGenerateFailed)
+		common.ApiErrorT(c, "Failed to generate token")
 		common.SysLog("failed to generate sub user token key: " + err.Error())
 		return
 	}
@@ -212,11 +211,11 @@ func UpdateSubUser(c *gin.Context) {
 	previous := *subUser
 	if token.Status == common.TokenStatusEnabled {
 		if subUser.Status == common.TokenStatusExpired && subUser.ExpiredTime <= common.GetTimestamp() && subUser.ExpiredTime != -1 {
-			common.ApiErrorI18n(c, i18n.MsgTokenExpiredCannotEnable)
+			common.ApiErrorT(c, "Token has expired and cannot be enabled. Please modify the expiration time or set it to never expire")
 			return
 		}
 		if subUser.Status == common.TokenStatusExhausted && subUser.RemainQuota <= 0 && !subUser.UnlimitedQuota {
-			common.ApiErrorI18n(c, i18n.MsgTokenExhaustedCannotEable)
+			common.ApiErrorT(c, "Token quota is exhausted and cannot be enabled. Please modify the remaining quota or set it to unlimited")
 			return
 		}
 	}

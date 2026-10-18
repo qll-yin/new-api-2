@@ -112,7 +112,14 @@ func grantPromotionCommission(tx *gorm.DB, topUp *TopUp, rechargeQuota int) (inv
 
 // recordPromotionCommissionLog 在充值事务提交后为上级写佣金日志。
 func recordPromotionCommissionLog(inviterId int, rechargeAmount float64, commissionQuota int, tradeNo string) {
-	RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("推广分成：下级用户充值 %.2f，获得佣金 %s（订单号 %s）", rechargeAmount, logger.LogQuota(commissionQuota), tradeNo))
+	RecordLog(inviterId, LogTypeSystem, common.NewMessage(
+		"Promotion commission: downline top-up {{amount}}, commission {{quota}} (order {{trade_no}})",
+		map[string]any{
+			"amount":   fmt.Sprintf("%.2f", rechargeAmount),
+			"quota":    logger.LogQuota(commissionQuota),
+			"trade_no": tradeNo,
+		},
+	))
 }
 
 // PromotionRecordFilter 推广流水的筛选条件：上级（Username，管理员视图用）、

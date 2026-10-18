@@ -48,6 +48,7 @@ const baseSubUser: SubUser = {
   group: 'auto',
   auto_groups: ['default', 'vip'],
   cross_group_retry: true,
+  allow_user_quota_query: false,
   model_limits_enabled: true,
   model_limits: 'gpt-4o,gpt-4o-mini',
   allow_ips: '10.0.0.1\n192.168.0.0/24',
