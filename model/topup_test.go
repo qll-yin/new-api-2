@@ -288,3 +288,45 @@ func TestPromotionAdminRecords(t *testing.T) {
 	assert.Equal(t, int64(2), count)
 	assert.Equal(t, int64(500), filteredQuota)
 }
+
+// TestUserTopUpHistoryHasNoAgeWindow 验证用户端订单列表与订单号搜索不再受
+// 上游 30 天窗口限制，且仍然只返回本人订单；管理员搜索保持全量。
+func TestUserTopUpHistoryHasNoAgeWindow(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&User{}, &TopUp{}))
+	require.NoError(t, DB.Where("trade_no LIKE ?", "TEST-WINDOW-%").Delete(&TopUp{}).Error)
+	require.NoError(t, DB.Where("username LIKE ?", "window-user-%").Delete(&User{}).Error)
+
+	alice := &User{Username: "window-user-alice", AffCode: "PWIN1", Quota: 0}
+	require.NoError(t, DB.Create(alice).Error)
+	bob := &User{Username: "window-user-bob", AffCode: "PWIN2", Quota: 0}
+	require.NoError(t, DB.Create(bob).Error)
+
+	now := common.GetTimestamp()
+	require.NoError(t, DB.Create(&[]TopUp{
+		{UserId: alice.Id, Amount: 10, TradeNo: "TEST-WINDOW-ALICE-OLD", CreateTime: now - 400*24*60*60, Status: common.TopUpStatusSuccess},
+		{UserId: alice.Id, Amount: 20, TradeNo: "TEST-WINDOW-ALICE-NEW", CreateTime: now, Status: common.TopUpStatusSuccess},
+		{UserId: bob.Id, Amount: 30, TradeNo: "TEST-WINDOW-BOB-OLD", CreateTime: now - 400*24*60*60, Status: common.TopUpStatusSuccess},
+	}).Error)
+
+	pageInfo := &common.PageInfo{Page: 1, PageSize: 10}
+
+	// 列表：400 天前的订单仍然可见，且不跨用户
+	rows, total, err := GetUserTopUps(alice.Id, pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, "TEST-WINDOW-ALICE-NEW", rows[0].TradeNo, "应按 id desc 排序")
+
+	// 搜索：能按订单号命中 400 天前的订单
+	rows, total, err = SearchUserTopUps(alice.Id, "TEST-WINDOW-ALICE-OLD", pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, rows, 1)
+	assert.Equal(t, "TEST-WINDOW-ALICE-OLD", rows[0].TradeNo)
+
+	// 管理员搜索保持全量、不受窗口影响
+	all, allTotal, err := SearchAllTopUps("TEST-WINDOW-%", pageInfo)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), allTotal)
+	require.Len(t, all, 3)
+}

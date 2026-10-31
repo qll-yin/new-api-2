@@ -313,6 +313,9 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 }
 
 // topUpQueryWindowSeconds 限制充值记录查询的时间窗口（秒）。
+//
+// 二开说明：用户端（GetUserTopUps / SearchUserTopUps）已注释停用该窗口，
+// 常量与 topUpQueryCutoff 保留备查；管理员接口本就不受限。
 const topUpQueryWindowSeconds int64 = 30 * 24 * 60 * 60
 
 // topUpQueryCutoff 返回允许查询的最早 create_time（秒级 Unix 时间戳）。
@@ -332,17 +335,20 @@ func GetUserTopUps(userId int, pageInfo *common.PageInfo) (topups []*TopUp, tota
 		}
 	}()
 
-	cutoff := topUpQueryCutoff()
+	// 二开：用户端订单历史不再限制 30 天查询窗口，保留上游实现备查。
+	// cutoff := topUpQueryCutoff()
 
 	// Get total count within transaction
-	err = tx.Model(&TopUp{}).Where("user_id = ? AND create_time >= ?", userId, cutoff).Count(&total).Error
+	// err = tx.Model(&TopUp{}).Where("user_id = ? AND create_time >= ?", userId, cutoff).Count(&total).Error
+	err = tx.Model(&TopUp{}).Where("user_id = ?", userId).Count(&total).Error
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, err
 	}
 
 	// Get paginated topups within same transaction
-	err = tx.Where("user_id = ? AND create_time >= ?", userId, cutoff).Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&topups).Error
+	// err = tx.Where("user_id = ? AND create_time >= ?", userId, cutoff).Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&topups).Error
+	err = tx.Where("user_id = ?", userId).Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&topups).Error
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, err
@@ -401,7 +407,9 @@ func SearchUserTopUps(userId int, keyword string, pageInfo *common.PageInfo) (to
 		}
 	}()
 
-	query := tx.Model(&TopUp{}).Where("user_id = ? AND create_time >= ?", userId, topUpQueryCutoff())
+	// 二开：用户端订单搜索同样不再限制 30 天窗口；LIKE 转义与 COUNT 上限保持不变。
+	// query := tx.Model(&TopUp{}).Where("user_id = ? AND create_time >= ?", userId, topUpQueryCutoff())
+	query := tx.Model(&TopUp{}).Where("user_id = ?", userId)
 	if keyword != "" {
 		pattern, perr := sanitizeLikePattern(keyword)
 		if perr != nil {
