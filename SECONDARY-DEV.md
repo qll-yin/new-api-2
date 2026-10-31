@@ -326,6 +326,7 @@
    - `model/promotion_commission.go`（rc.45 起 `RecordLog` 改收 `*common.Message`，佣金日志用 `common.NewMessage`）
    - `setting/console_setting/validation.go`（rc.45 起 URL/内容校验改用 `itemMessages` 结构体；我方自定义导航校验使用 `customNavMessages`，勿再传字符串）
    - `web/src/components/compact-date-time-range-picker.tsx`（我方已把组件移到共享目录；上游新增文件仍可能引用旧相对路径，合并后需改指 `@/components/compact-date-time-range-picker`）
+   - `model/topup.go`（上游 b2e62a44e 把用户端充值记录列表/搜索限制为最近 30 天，管理员接口不受限；二开已在 `GetUserTopUps` / `SearchUserTopUps` 注释停用该窗口。合并上游后必须确认 `create_time >= cutoff` 没有被重新带回用户端查询，`TestUserTopUpHistoryHasNoAgeWindow` 会直接报错）
 2. **工厂插件（`plugins/tasks/*/plugin.js`）不改**：视频直链等定制一律在宿主 Go 层做，避免与上游插件更新冲突（wan3.0 等上游新模型直接吃上游更新）。
 3. **locale 只能通过脚本写**：`web/scripts/` 下临时脚本 + `bun run i18n:sync`，键为英文源串，7 语言文件必须同步。新增键必须在本文件的 `translation` 命名空间内——顶层键运行时 `t()` 取不到（rc.47 合并时修复了 4 个此前误放顶层的二开文案键）。
    - 合并时语言文件必冲突，按「冲突块内并集」解：块内先我方后上游、仅在同一冲突块内部按整行文本去重。**不要跨块按同名键去重**——语言文件是 `{translation, homepage}` 双命名空间，顶层键与 `homepage` 内键同名同缩进（如 `Models`），跨块去重会误删 homepage 的键并导致 TS 报「Property 'Models' does not exist」。
@@ -382,3 +383,4 @@
 | `6bcc5f7dd` | 合并前本地版本号更新（v1.0.0-rc.41.1） |
 | `6e0d881fb` | 合并上游 main v1.0.0-rc.45（rc.42/rc.43/rc.44/rc.45，100 提交，663 文件）。冲突 11 文件：model/option.go 并集、model/topup.go 五个支付渠道保留上游 LogText + 我方分成块、时间选择器保留我方共享路径/emptyLabel 并采用上游秒级精度与 step、common-logs-filter-bar.tsx 并集、7 locale 块内并集。自动合并区适配上游 API 变更：i18n 常量迁移（sub_user/option → ApiErrorT）、RecordLog → NewMessage、console_setting → itemMessages、export-logs-dialog 旧路径改 `@/components`、子用户测试 fixture 补 `allow_user_quota_query`；补齐 4 个新语言键 ×7。SQLite 双启 schema 哈希一致 |
 | `6794b1526` | 合并上游 main v1.0.0-rc.47（rc.46/rc.47 + rc.47 后 5 提交，共 47 提交，237 文件），VERSION 随合并提交升至 v1.0.0-rc.47.1（上游 VERSION 为空文件，须手动维护）。冲突仅 7 个 locale（各 7 块），块内并集后 `bun run i18n:sync` 重排；顺带修复 4 个二开文案键（3 个自定义导航校验 + 1 个推广分成日志）误放 `translation` 外层、运行时 `t()` 取不到的问题。自动合并核对：option.go 两处二开配置、jsplugin adaptor 的 extractUpstreamVideoURL/ConvertToOpenAIVideo、system-settings/types.ts 均保留。上游本轮任务插件 API 变更（插件自校验、客户端请求头透传、原生路由 multipart、普通渠道共享端点竞争、72h 超时、重试重新计价、查询重定向凭据白名单）对 sora 插件为向后兼容扩展。验证：go build/vet、relaykit+tokenkit 独立构建、jsplugin 与 sub-user 测试、`bun check -b`、前端构建、7 语言键集 7522 无丢失漂移。注意：上游 `typecheck` 已改为 `bun check -b` 且要求 bun 1.4.4（本机 1.4.2 需先 `bun upgrade`） |
+| `81f1a46af` | 用户端订单历史取消 30 天查询窗口：上游 b2e62a44e 把 `GetUserTopUps` / `SearchUserTopUps` 限制为最近 30 天（管理员接口不受限），按产品要求注释停用用户端时间筛选，保留常量/辅助函数与 LIKE 转义、COUNT 上限；新增 `TestUserTopUpHistoryHasNoAgeWindow` 覆盖 400 天前订单可列表/可搜索且不跨用户 |
