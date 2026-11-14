@@ -194,6 +194,74 @@ export function RechargeFormCard({
     )
   }
 
+  const redemptionPanel = redemptionEnabled ? (
+    <section
+      aria-labelledby='redemption-heading'
+      className='rounded-xl border border-amber-200/70 bg-amber-50/60 p-4 sm:p-5 dark:border-amber-900/50 dark:bg-amber-950/20'
+    >
+      <div className='flex items-center gap-2.5'>
+        <IconBadge tone='warning' size='sm'>
+          <Gift />
+        </IconBadge>
+        <h3
+          id='redemption-heading'
+          className='text-sm font-semibold tracking-tight sm:text-base'
+        >
+          {t('Redeem a code')}
+        </h3>
+      </div>
+      <p className='text-muted-foreground mt-2 text-xs leading-relaxed sm:text-sm'>
+        {t(
+          'Enter a redemption code to top up instantly, no online payment required.'
+        )}
+      </p>
+
+      {topupLink ? (
+        <div className='border-amber-200/70 bg-background/70 mt-3 flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900/40'>
+          <p className='text-xs leading-relaxed sm:text-sm'>
+            {t(
+              'No code yet? Buy one from our partner store, then enter it below.'
+            )}
+          </p>
+          <Button
+            variant='outline'
+            size='sm'
+            className='shrink-0 gap-1.5 self-start sm:self-auto'
+            render={
+              <a
+                href={topupLink}
+                target='_blank'
+                rel='noopener noreferrer'
+              />
+            }
+          >
+            {t('Buy a code')}
+            <ExternalLink className='h-3.5 w-3.5' />
+          </Button>
+        </div>
+      ) : (
+        <p className='text-muted-foreground mt-3 text-xs leading-relaxed sm:text-sm'>
+          {t('Contact the administrator to get a redemption code.')}
+        </p>
+      )}
+
+      <div className='border-amber-200/60 mt-3 grid gap-2 border-t pt-3 sm:grid-cols-[minmax(0,1fr)_auto] dark:border-amber-900/40'>
+        <Input
+          id='redemption-code'
+          value={redemptionCode}
+          onChange={(e) => onRedemptionCodeChange(e.target.value)}
+          placeholder={t('Enter your redemption code')}
+          aria-label={t('Enter your redemption code')}
+          className='bg-background h-10 min-w-0'
+        />
+        <Button onClick={onRedeem} disabled={redeeming} className='h-10 px-5'>
+          {redeeming && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+          {t('Redeem')}
+        </Button>
+      </div>
+    </section>
+  ) : null
+
   return (
     <TitledCard
       title={t('Add Funds')}
@@ -216,6 +284,9 @@ export function RechargeFormCard({
       }
       contentClassName='space-y-4 sm:space-y-6'
     >
+      {/* Online topup unavailable: redemption is the primary path */}
+      {!hasAnyTopup && redemptionPanel}
+
       {/* Online Topup Section */}
       {hasAnyTopup ? (
         <div className='space-y-4 sm:space-y-6'>
@@ -550,53 +621,8 @@ export function RechargeFormCard({
         )}
 
       {/* Redemption Code Section */}
-      {redemptionEnabled ? (
-        <div className='space-y-2.5 border-t pt-4 sm:space-y-3 sm:pt-6'>
-          <div className='flex items-center gap-2'>
-            <IconBadge tone='warning' size='xs'>
-              <Gift />
-            </IconBadge>
-            <Label
-              htmlFor='redemption-code'
-              className='text-muted-foreground text-xs font-medium tracking-wider uppercase'
-            >
-              {t('Have a Code?')}
-            </Label>
-          </div>
-          <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
-            <Input
-              id='redemption-code'
-              value={redemptionCode}
-              onChange={(e) => onRedemptionCodeChange(e.target.value)}
-              placeholder={t('Enter your redemption code')}
-              className='h-9 min-w-0'
-            />
-            <Button
-              onClick={onRedeem}
-              disabled={redeeming}
-              variant='outline'
-              className='h-9 px-4'
-            >
-              {redeeming && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-              {t('Redeem')}
-            </Button>
-          </div>
-          {topupLink && (
-            <p className='text-muted-foreground text-xs'>
-              {t('Need a redemption code?')}{' '}
-              <a
-                href={topupLink}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='inline-flex items-center gap-1 underline-offset-4 hover:underline'
-              >
-                {t('Get one here')}
-                <ExternalLink className='h-3 w-3' />
-              </a>
-            </p>
-          )}
-        </div>
-      ) : (
+      {hasAnyTopup && redemptionPanel}
+      {!redemptionEnabled && (
         <Alert className='border-t'>
           <AlertDescription>
             {t(

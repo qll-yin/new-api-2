@@ -3117,7 +3117,6 @@
     "Generation was interrupted": "生成已中斷",
     "Generic cache": "通用緩存",
     "Get advice": "獲取建議",
-    "Get one here": "點此獲取",
     "Get started": "開始使用",
     "Get Started": "開始使用",
     "GitHub": "GitHub",
@@ -3221,7 +3220,6 @@
     "Has been disabled": "已停用",
     "Has been enabled": "已啟用",
     "Has been invalidated": "已作廢",
-    "Have a Code?": "有兌換碼嗎？",
     "Header": "請求頭",
     "Header changes": "請求頭變更",
     "header instead.": " 請求頭。",
@@ -4172,7 +4170,6 @@
     "Native Gemini routes plus OpenAI Chat and Responses compatibility forwarding.": "Gemini 原生轉發，並相容 OpenAI Chat 和 Responses 轉換。",
     "Native OpenAI routes plus optional Claude and Gemini compatibility routes.": "OpenAI 原生轉發，並提供可選的 Claude 和 Gemini 相容轉換。",
     "Native routes": "原生路由",
-    "Need a redemption code?": "需要兌換碼？",
     "Needs API key": "需要 API 金鑰",
     "Needs login": "需要登入",
     "Negate condition": "取反",
@@ -7916,7 +7913,12 @@
     "Zhipu V4": "智譜 V4",
     "Zoom": "縮放",
     "By clicking sign in, you agree to our": "點擊登入即表示您同意我們的",
-    "By creating an account, you agree to our": "建立帳戶即表示您同意我們的"
+    "By creating an account, you agree to our": "建立帳戶即表示您同意我們的",
+    "Redeem a code": "兌換碼儲值",
+    "Enter a redemption code to top up instantly, no online payment required.": "輸入兌換碼即可立即到帳，無需線上支付。",
+    "No code yet? Buy one from our partner store, then enter it below.": "還沒有兌換碼？可先在合作商城購買，再回到下方輸入。",
+    "Buy a code": "前往購買",
+    "Contact the administrator to get a redemption code.": "請聯繫管理員取得兌換碼。"
   },
   "homepage": {
     "120+": "120+",
