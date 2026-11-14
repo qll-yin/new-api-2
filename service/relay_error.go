@@ -60,6 +60,16 @@ func ShouldRetryRelayError(c *gin.Context, openaiErr *types.NewAPIError, retryTi
 	return DecideRelayRetry(c, openaiErr, retryTimes).Action == "retry"
 }
 
+// RetrySelectionError decides what a retry iteration reports when it cannot
+// select another channel. The error the last attempt returned tells the client
+// the real cause; a channel-selection error would wrongly blame the gateway.
+func RetrySelectionError(lastAttemptErr *types.NewAPIError, selectionErr *types.NewAPIError) *types.NewAPIError {
+	if lastAttemptErr != nil {
+		return lastAttemptErr
+	}
+	return selectionErr
+}
+
 func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *types.NewAPIError, relayInfo *relaycommon.RelayInfo) {
 	if err == nil {
 		return

@@ -208,7 +208,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		channel, channelErr := getChannel(c, relayInfo, retryParam)
 		if channelErr != nil {
 			logger.LogError(c, channelErr.Error())
-			newAPIError = channelErr
+			newAPIError = service.RetrySelectionError(relayInfo.LastError, channelErr)
 			break
 		}
 		service.AppendUsedChannel(c, channel.Id)
@@ -687,7 +687,10 @@ func executeTaskSubmissionWith(
 			channel, channelErr = getChannel(c, relayInfo, retryParam)
 			if channelErr != nil {
 				logger.LogError(c, channelErr.Error())
-				taskErr = service.TaskErrorWrapperLocal(channelErr.Err, "get_channel_failed", channelErr.StatusCode)
+				// 重试时选不到渠道不应覆盖上一次真实的上游错误
+				if relayInfo.LastError == nil || taskErr == nil {
+					taskErr = service.TaskErrorWrapperLocal(channelErr.Err, "get_channel_failed", channelErr.StatusCode)
+				}
 				break
 			}
 		}

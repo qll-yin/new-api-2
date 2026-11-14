@@ -278,3 +278,13 @@ func TestRequestPolicyEventsReachLogAdminInfo(t *testing.T) {
 	AppendRelayLogAdminInfo(untouched, nil, other)
 	assert.NotContains(t, other.Snapshot()["admin_info"], "request_policy", "requests without decisions do not carry an empty record")
 }
+
+// TestRetrySelectionErrorKeepsLastAttemptError 验证重试选不到渠道时，客户端
+// 仍能看到上一次上游返回的错误，而不是被换成"无可用渠道"。
+func TestRetrySelectionErrorKeepsLastAttemptError(t *testing.T) {
+	upstream := types.NewErrorWithStatusCode(errors.New("content policy violation"), types.ErrorCodeBadResponseStatusCode, http.StatusForbidden)
+	selection := types.NewError(errors.New("no available channel"), types.ErrorCodeGetChannelFailed)
+
+	assert.Same(t, upstream, RetrySelectionError(upstream, selection), "the last upstream error wins over retry exhaustion")
+	assert.Same(t, selection, RetrySelectionError(nil, selection), "the first selection failure is still reported as-is")
+}

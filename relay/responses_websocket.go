@@ -327,7 +327,11 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 			var channel *appmodel.Channel
 			channel, apiErr = selectResponsesWSChannel(c, modelName, retry)
 			if apiErr != nil {
-				return apiErr
+				if info == nil {
+					return apiErr
+				}
+				// 重试时选不到渠道不应覆盖上一次真实的上游错误
+				return service.RetrySelectionError(info.LastError, apiErr)
 			}
 			service.AppendUsedChannel(c, channel.Id)
 			if info == nil {
